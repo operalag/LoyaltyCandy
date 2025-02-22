@@ -12,8 +12,10 @@
 
 using SweetSugar.Scripts.Core;
 using UnityEngine;
-#if UNITY_ANALYTICS
 
+#if UNITY_ANALYTICS
+using System.Collections.Generic;
+using UnityEngine.Analytics;
 #endif
 
 namespace SweetSugar.Scripts.Integrations
