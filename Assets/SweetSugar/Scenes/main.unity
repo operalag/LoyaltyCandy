@@ -1813,7 +1813,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &639939853
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -14267,7 +14267,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &2071092425
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -14404,7 +14404,8 @@ MonoBehaviour:
   testConfig:
     networkUrl: http://localhost:4943
     canisterId: bkyz2-fmaaa-aaaaa-qaaaq-cai
-  iCPClient: {fileID: 1783999839}
+  icpClient: {fileID: 1783999839}
+  coinsPreferenceName: Gems
 --- !u!4 &2114231631
 Transform:
   m_ObjectHideFlags: 0

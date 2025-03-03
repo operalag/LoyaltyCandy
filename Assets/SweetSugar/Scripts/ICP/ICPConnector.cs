@@ -12,7 +12,7 @@ using UnityEngine;
 namespace LoyaltyCandy  {
     public class ICPConnector : MonoBehaviour
     {
-        public static ICPClient Instance {get { return Instance; } private set{}}
+        public static ICPClient Client {get { return clientInstance; } private set{}}
 
         [SerializeField]
         private TMP_Text greetingLabel;
@@ -20,18 +20,20 @@ namespace LoyaltyCandy  {
         private ICPCanisterConfig testConfig;
         [SerializeField]
         private ICPClient icpClient;
+        [SerializeField]
+        private string coinsPreferenceName = "Gems";
 
         private HelloClientApiClient client;
-        private ICPClient instance;        
+        private static ICPClient clientInstance;
 
         private void Awake()
         {
-            if (instance != null)
+            if (clientInstance != null)
             {
                 Destroy(gameObject);
                 return;
             }
-            instance = icpClient;
+            clientInstance = icpClient;
             DontDestroyOnLoad(gameObject);
         }
 
@@ -45,14 +47,8 @@ namespace LoyaltyCandy  {
 
         private void SetupCoins()
         {
-            int numCoins = PlayerPrefs.GetInt("num_coins");
+            int numCoins = PlayerPrefs.GetInt(coinsPreferenceName);
             icpClient.CheckCoinBalance(numCoins);
-            // PuzzleMatchManager.instance.coinsSystem.Subscribe(OnCoinUpdated);
-        }
-
-        private void OnCoinUpdated(int coins)
-        {
-            icpClient.SaveCoins(coins);
         }
 
         private void ConnectClient()

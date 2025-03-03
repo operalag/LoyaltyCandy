@@ -31,6 +31,7 @@ namespace LoyaltyCandy {
         }
 
         public void ReadScore() {
+            Debug.Log("Reading score");
             StartCoroutine(ExecuteRead());
         }
 

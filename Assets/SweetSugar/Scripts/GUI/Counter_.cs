@@ -58,7 +58,8 @@ namespace SweetSugar.Scripts.GUI
         {
             lastTime = 0;
             UpdateText();
-            alert = false; StartCoroutine(UpdateRare());
+            alert = false; 
+            StartCoroutine(UpdateRare());
             if (name == "Limit") StartCoroutine(TimeTick());
         }
 
