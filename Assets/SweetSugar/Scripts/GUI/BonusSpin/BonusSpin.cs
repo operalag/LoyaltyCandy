@@ -68,39 +68,6 @@ namespace SweetSugar.Scripts.GUI.BonusSpin
     /// Purchasing of one spin
     /// </summary>
 
-                // This BuyStartSpin method is orginal and I commented since I havent enable unity ads
-//     public void BuyStartSpin()
-//     {
-//         transform.Find("Image/BuyPlay").GetComponent<Button>().interactable = false;
-//         if (priceButton.text == LocalizationManager.GetText(82, "Free"))
-//         {
-// #if UNITY_ADS
-//             AdsManager.OnRewardedShown += () =>
-//             {
-//                 StartSpin();
-//             };
-// #else
-//                 StartSpin();
-// #endif
-//             InitScript.Instance.currentReward = RewardsType.FreeAction;
-//             AdsManager.THIS.ShowRewardedAds();
-         
-//             return;
-//         }
-//         if (InitScript.Gems >= int.Parse(priceButton.text))
-//         {
-//             InitScript.Instance.SpendGems(int.Parse(priceButton.text));
-//             StartSpin();
-//         }
-//         else
-//         {
-//             transform.Find("Image/BuyPlay").GetComponent<Button>().interactable = true;
-//             MenuReference.THIS.GemsShop.gameObject.SetActive(true);
-//         }
-//     }
-
-         // this is temporary modified code from above methid
-         // delete it after enabeling unity ads and use above method
     public void BuyStartSpin()
     {
         transform.Find("Image/BuyPlay").GetComponent<Button>().interactable = false;
@@ -111,12 +78,14 @@ namespace SweetSugar.Scripts.GUI.BonusSpin
             {
                 StartSpin();
             };
-            AdsManager.THIS.ShowRewardedAds();
-#endif
+#else
                 StartSpin();
+#endif
+                StartSpin(); // this is temporarily added sice we havent enabled unity ads.
 
             InitScript.Instance.currentReward = RewardsType.FreeAction;
-        
+            AdsManager.THIS.ShowRewardedAds();
+         
             return;
         }
         if (InitScript.Gems >= int.Parse(priceButton.text))

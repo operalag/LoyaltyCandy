@@ -45,7 +45,7 @@ namespace SweetSugar.Scripts.GUI
 
         bool WaitForAksFriends;
         Dictionary<string, string> parameters;
-        public Image backButtonImage;
+        private Image backButtonImage;
         public Sprite settingSprite;
         public Sprite backButtonSprite;
         public GameObject profilePopup;
@@ -138,6 +138,7 @@ namespace SweetSugar.Scripts.GUI
 
             if (gameObject.name == "Settings" && LevelManager.GetGameStatus() == GameState.Map)
             {
+                backButtonImage = GameObject.Find("CloseIcon").GetComponent<Image>();
                 if (backButtonImage != null && settingSprite != null)
                 {
                     backButtonImage.sprite = settingSprite;
@@ -146,7 +147,11 @@ namespace SweetSugar.Scripts.GUI
 
             if (gameObject.name == "Settings" && LevelManager.GetGameStatus() != GameState.Map)
             {
-               backButtonImage.sprite = backButtonSprite;
+                backButtonImage = GameObject.Find("CloseIcon").GetComponent<Image>();
+                if(backButtonImage != null)
+                {
+                    backButtonImage.sprite = backButtonSprite;
+                }
             }
         }
 
@@ -387,7 +392,10 @@ namespace SweetSugar.Scripts.GUI
             
             else if (gameObject.name == "Settings" && LevelManager.GetGameStatus() == GameState.Map)
             {
-                profilePopup.SetActive(true);
+                if (profilePopup != null)
+                {
+                    profilePopup.SetActive(true);
+                }
             }
             //        SoundBase.Instance.PlayOneShot(SoundBase.Instance.swish[1]);
 
