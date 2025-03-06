@@ -40,7 +40,7 @@ namespace SweetSugar.Scripts.GUI
 
 		public void Play () {
 			SoundBase.Instance.GetComponent<AudioSource> ().PlayOneShot (SoundBase.Instance.click);
-			LeanTween.Framework.LeanTween.delayedCall(4, ()=>SceneManager.LoadScene(Resources.Load<MapSwitcher>("Scriptable/MapSwitcher").GetSceneName()));
+			LeanTween.Framework.LeanTween.delayedCall(1, ()=>SceneManager.LoadScene(Resources.Load<MapSwitcher>("Scriptable/MapSwitcher").GetSceneName()));
 		}
 
 		public void Pause () {
