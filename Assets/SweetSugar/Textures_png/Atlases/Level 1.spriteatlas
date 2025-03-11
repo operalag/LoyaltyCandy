@@ -67,7 +67,6 @@ SpriteAtlas:
     - 4ca7907116890f74482c480eeea345d7: 21300000
     - 83b436029e41c4909ba40e2251803713: 21300000
     - 49dfa212e626344fcb96ee0ac5353a8d: 21300000
-    - 1d4bfb22479712b4d8619c711b0520bf: 21300000
     - 8b8ffe522f2cb4ee89fa0490d35d4074: 21300000
     - 9cd4439215f4d42c2a5c31705ad5f035: 21300000
     - c344eb937e62c124e9d62ff20c0efa9f: 21300000
@@ -129,7 +128,6 @@ SpriteAtlas:
   - {fileID: 21300000, guid: 4ca7907116890f74482c480eeea345d7, type: 3}
   - {fileID: 21300000, guid: 83b436029e41c4909ba40e2251803713, type: 3}
   - {fileID: 21300000, guid: 49dfa212e626344fcb96ee0ac5353a8d, type: 3}
-  - {fileID: 21300000, guid: 1d4bfb22479712b4d8619c711b0520bf, type: 3}
   - {fileID: 21300000, guid: 8b8ffe522f2cb4ee89fa0490d35d4074, type: 3}
   - {fileID: 21300000, guid: 9cd4439215f4d42c2a5c31705ad5f035, type: 3}
   - {fileID: 21300000, guid: c344eb937e62c124e9d62ff20c0efa9f, type: 3}
@@ -190,7 +188,6 @@ SpriteAtlas:
   - character_info
   - booster_bomb_01
   - booster_destroy
-  - body2
   - character_main_hand
   - horiz_top_banner
   - ui_item_02

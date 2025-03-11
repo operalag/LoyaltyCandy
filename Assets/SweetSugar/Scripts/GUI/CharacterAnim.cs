@@ -21,10 +21,12 @@ namespace SweetSugar.Scripts.GUI
 	public class CharacterAnim : MonoBehaviour
 	{
 		public Animator anim;
+		public Animator animBoy;
 
 		private void OnEnable()
 		{
 			anim.SetTrigger("Game");
+			animBoy.SetTrigger("Game");
 			LevelManager.OnCombo += OnCombo;
 		}
 
@@ -36,6 +38,7 @@ namespace SweetSugar.Scripts.GUI
 
 		void OnCombo()
 		{
+			anim.SetTrigger("Cool");
 			anim.SetTrigger("Cool");
 
 		}
