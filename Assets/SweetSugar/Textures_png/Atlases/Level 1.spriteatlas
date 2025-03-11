@@ -62,9 +62,11 @@ SpriteAtlas:
     - 1def41307ec09402bbcda874f7dc557d: 21300000
     - efc89d4055b614c599197610a67ed3d3: 21300000
     - ddc70cb02de6e4acfa7bd1ee9a20cad2: 21300000
+    - e3e7b2e049b3ac04abc6efa1914ea3db: 21300000
     - fa7c5711680e3404b801fd7eff63742a: 21300000
     - 13984e115092d5944973eaaf6c7e2cb6: 21300000
     - 4ca7907116890f74482c480eeea345d7: 21300000
+    - 8f6257c17c8426845a9ef9aefb6c0cd7: 21300000
     - 83b436029e41c4909ba40e2251803713: 21300000
     - 49dfa212e626344fcb96ee0ac5353a8d: 21300000
     - 8b8ffe522f2cb4ee89fa0490d35d4074: 21300000
@@ -103,6 +105,7 @@ SpriteAtlas:
     - 7619ba6ca91254f728e6a5fedb07a59b: 21300000
     - 7e7fec7c9d65746778286ffadafcd8d5: 21300000
     - 8f1ba8ac2f14aae40a8edd78365a4ad3: 21300000
+    - bcc6f5fc345e8a0488d836f0f813cc87: 21300000
     - c96cea2d8231d42e58bee63cd62b0b05: 21300000
     - 74b74c3dcb6fe2f47922d419865b8e67: 21300000
     - a1c5254d23c7c42529b4178c719c9d63: 21300000
@@ -123,9 +126,11 @@ SpriteAtlas:
   - {fileID: 21300000, guid: 1def41307ec09402bbcda874f7dc557d, type: 3}
   - {fileID: 21300000, guid: efc89d4055b614c599197610a67ed3d3, type: 3}
   - {fileID: 21300000, guid: ddc70cb02de6e4acfa7bd1ee9a20cad2, type: 3}
+  - {fileID: 21300000, guid: e3e7b2e049b3ac04abc6efa1914ea3db, type: 3}
   - {fileID: 21300000, guid: fa7c5711680e3404b801fd7eff63742a, type: 3}
   - {fileID: 21300000, guid: 13984e115092d5944973eaaf6c7e2cb6, type: 3}
   - {fileID: 21300000, guid: 4ca7907116890f74482c480eeea345d7, type: 3}
+  - {fileID: 21300000, guid: 8f6257c17c8426845a9ef9aefb6c0cd7, type: 3}
   - {fileID: 21300000, guid: 83b436029e41c4909ba40e2251803713, type: 3}
   - {fileID: 21300000, guid: 49dfa212e626344fcb96ee0ac5353a8d, type: 3}
   - {fileID: 21300000, guid: 8b8ffe522f2cb4ee89fa0490d35d4074, type: 3}
@@ -164,6 +169,7 @@ SpriteAtlas:
   - {fileID: 21300000, guid: 7619ba6ca91254f728e6a5fedb07a59b, type: 3}
   - {fileID: 21300000, guid: 7e7fec7c9d65746778286ffadafcd8d5, type: 3}
   - {fileID: 21300000, guid: 8f1ba8ac2f14aae40a8edd78365a4ad3, type: 3}
+  - {fileID: 21300000, guid: bcc6f5fc345e8a0488d836f0f813cc87, type: 3}
   - {fileID: 21300000, guid: c96cea2d8231d42e58bee63cd62b0b05, type: 3}
   - {fileID: 21300000, guid: 74b74c3dcb6fe2f47922d419865b8e67, type: 3}
   - {fileID: 21300000, guid: a1c5254d23c7c42529b4178c719c9d63, type: 3}
@@ -183,9 +189,11 @@ SpriteAtlas:
   - star_2
   - booster_plus_5
   - booster_button
+  - character_info
   - choco_spiral_block_02
   - character_info_complete
   - character_info
+  - character_info_complete
   - booster_bomb_01
   - booster_destroy
   - character_main_hand
@@ -224,6 +232,7 @@ SpriteAtlas:
   - ver_top_banner
   - progress_bar_02
   - Happy_face
+  - redo sad_face
   - booster_number
   - character_main_hand
   - booster_bomb_02
