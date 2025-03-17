@@ -232,7 +232,7 @@ SpriteAtlas:
   - ver_top_banner
   - progress_bar_02
   - Happy_face
-  - redo sad_face
+  - sad_face with tears
   - booster_number
   - character_main_hand
   - booster_bomb_02
