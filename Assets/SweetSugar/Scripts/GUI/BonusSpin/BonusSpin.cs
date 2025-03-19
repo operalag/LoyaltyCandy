@@ -67,6 +67,7 @@ namespace SweetSugar.Scripts.GUI.BonusSpin
     /// <summary>
     /// Purchasing of one spin
     /// </summary>
+
     public void BuyStartSpin()
     {
         transform.Find("Image/BuyPlay").GetComponent<Button>().interactable = false;
@@ -77,11 +78,13 @@ namespace SweetSugar.Scripts.GUI.BonusSpin
             {
                 StartSpin();
             };
+            AdsManager.THIS.ShowRewardedAds();
 #else
                 StartSpin();
 #endif
+
             InitScript.Instance.currentReward = RewardsType.FreeAction;
-            AdsManager.THIS.ShowRewardedAds();
+            
          
             return;
         }
@@ -96,6 +99,8 @@ namespace SweetSugar.Scripts.GUI.BonusSpin
             MenuReference.THIS.GemsShop.gameObject.SetActive(true);
         }
     }
+
+
         public void StartSpin()
         {
             if (!spin && !stopspin)
