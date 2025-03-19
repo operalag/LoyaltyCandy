@@ -78,13 +78,13 @@ namespace SweetSugar.Scripts.GUI.BonusSpin
             {
                 StartSpin();
             };
+            AdsManager.THIS.ShowRewardedAds();
 #else
                 StartSpin();
 #endif
-                StartSpin(); // this is temporarily added sice we havent enabled unity ads.
 
             InitScript.Instance.currentReward = RewardsType.FreeAction;
-            AdsManager.THIS.ShowRewardedAds();
+            
          
             return;
         }

@@ -7,9 +7,11 @@ public class SaveAvatar : MonoBehaviour
 {
     public Toggle boyToggle;
     public Toggle girlToggle;
+    private ToggleAvatar toggleAvatar;
     // Start is called before the first frame update
     void Start()
     {
+        toggleAvatar = FindObjectOfType<ToggleAvatar>();
         LoadSelectedAvatar();
 
         if (boyToggle != null && girlToggle != null)
@@ -23,6 +25,11 @@ public class SaveAvatar : MonoBehaviour
     {
         PlayerPrefs.SetString("SelectedAvatar", selectedAvatar);
         PlayerPrefs.Save();
+
+        if (toggleAvatar != null)
+        {
+            toggleAvatar.AvatarUpdate();
+        }
     }
 
     void LoadSelectedAvatar()
@@ -33,7 +40,7 @@ public class SaveAvatar : MonoBehaviour
             boyToggle.isOn = true;
         }
 
-        else if (savedAvatar == "Girl")
+        if (savedAvatar == "Girl")
         {
             girlToggle.isOn = true;
         }

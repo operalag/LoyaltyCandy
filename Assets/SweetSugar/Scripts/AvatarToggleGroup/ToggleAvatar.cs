@@ -11,11 +11,11 @@ public class ToggleAvatar : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-       
+       AvatarUpdate();
     }
 
     // Update is called once per frame
-    void Update()
+    public void AvatarUpdate()
     {
         if (boyAvatar != null && girlAvatar != null)
         {
