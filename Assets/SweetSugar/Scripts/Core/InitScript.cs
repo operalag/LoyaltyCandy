@@ -12,6 +12,7 @@
 
 using System;
 using System.Collections;
+using LoyaltyCandy;
 using SweetSugar.Scripts.AdsEvents.GoogleRewardedAds;
 using SweetSugar.Scripts.GUI;
 using SweetSugar.Scripts.GUI.BonusSpin;
@@ -87,6 +88,8 @@ namespace SweetSugar.Scripts.Core
 
         //daily reward popup reference
         public GameObject DailyMenu;
+        
+        private ICPClient icpClient;
 
         // Use this for initialization
         void Awake()
@@ -97,38 +100,27 @@ namespace SweetSugar.Scripts.Core
             RestLifeTimer = PlayerPrefs.GetFloat("RestLifeTimer");
             DateOfExit = PlayerPrefs.GetString("DateOfExit", "");
             DebugLogKeeper.Init();
-            Gems = PlayerPrefs.GetInt("Gems");
-            lifes = PlayerPrefs.GetInt("Lifes");
-            if (PlayerPrefs.GetInt("Lauched") == 0)
-            {
-                //First lauching
-                lifes = CapOfLife;
-                PlayerPrefs.SetInt("Lifes", lifes);
-                Gems = FirstGems;
-                PlayerPrefs.SetInt("Gems", Gems);
-                PlayerPrefs.SetInt("Music", 1);
-                PlayerPrefs.SetInt("Sound", 1);
 
-                PlayerPrefs.SetInt("Lauched", 1);
-                PlayerPrefs.Save();
-            }
+        }
 
+        private void InitComponents()
+        {
             rate = Instantiate(Resources.Load("Prefabs/Rate")) as GameObject;
             rate.SetActive(false);
             rate.transform.SetParent(MenuReference.THIS.transform);
             rate.transform.localPosition = Vector3.zero;
             rate.GetComponent<RectTransform>().offsetMin = new Vector2(-5, -5);
             rate.GetComponent<RectTransform>().offsetMax = new Vector2(5, 5);
-//        rate.GetComponent<RectTransform>().anchoredPosition = (Resources.Load("Prefabs/Rate") as GameObject).GetComponent<RectTransform>().anchoredPosition;
+            //        rate.GetComponent<RectTransform>().anchoredPosition = (Resources.Load("Prefabs/Rate") as GameObject).GetComponent<RectTransform>().anchoredPosition;
             rate.transform.localScale = Vector3.one;
             var g = MenuReference.THIS.Reward.gameObject;
             g.SetActive(true);
             g.SetActive(false);
             if (CrosssceneData.totalLevels == 0)
                 CrosssceneData.totalLevels = LoadingManager.GetLastLevelNum();
-/*#if FACEBOOK
-            FacebookManager fbManager = new GameObject("FacebookManager").AddComponent<FacebookManager>();
-#endif*/
+            /*#if FACEBOOK
+                        FacebookManager fbManager = new GameObject("FacebookManager").AddComponent<FacebookManager>();
+            #endif*/
 #if GOOGLE_MOBILE_ADS
             var obj = FindObjectOfType<RewAdmobManager>();
             if (obj == null)
@@ -140,7 +132,51 @@ namespace SweetSugar.Scripts.Core
 
             currentReward = RewardsType.NONE;
         }
-        
+
+        void Start()
+        {
+            icpClient = ICPConnector.Client;
+
+            icpClient.OnRead += UpdateUI;
+            icpClient.OnSet += UpdateUI;
+
+            Gems = PlayerPrefs.GetInt("Gems");
+            lifes = PlayerPrefs.GetInt("Lifes");
+            if (PlayerPrefs.GetInt("Lauched") == 0)
+            {
+                //First lauching
+                lifes = CapOfLife;
+                PlayerPrefs.SetInt("Lifes", lifes);
+
+                SetGems(FirstGems);
+                Gems = FirstGems;
+
+                PlayerPrefs.SetInt("Music", 1);
+                PlayerPrefs.SetInt("Sound", 1);
+
+                PlayerPrefs.SetInt("Lauched", 1);
+                PlayerPrefs.Save();
+            }
+
+            InitComponents();
+        }
+
+        private void UpdateUI(bool success, object result, string message)
+        {
+            // Gems are set via the Counter_.cs script. Not ideal but we will work with it for now
+            // The counter script constantly updates the text based on a Timer
+            // and reads from the PlayerPrefs value
+            if (success && int.TryParse(result.ToString(), out Gems)) {
+                SaveGemsToPrefs(Gems);
+            } else {
+                if (!success) {
+                    Debug.LogError(message);
+                } else {
+                    Debug.LogError("Error converting result to int " + result);
+                }
+            }
+        }
+
         public void SaveLevelStarsCount(int level, int starsCount)
         {
             Debug.Log(string.Format("Stars count {0} of level {1} saved.", starsCount, level));
@@ -198,19 +234,25 @@ namespace SweetSugar.Scripts.Core
             AddGems(amount);
         }
 
-        public void SetGems(int count)
+        private void SetGems(int count)
         {
             Gems = count;
-            PlayerPrefs.SetInt("Gems", Gems);
+
+            // Save coins to the wallet
+            icpClient.SaveCoins(Gems);
+
+            SaveGemsToPrefs(Gems);
+        }
+
+        private static void SaveGemsToPrefs(int gems)
+        {
+            PlayerPrefs.SetInt("Gems", gems);
             PlayerPrefs.Save();
         }
 
-
         public void AddGems(int count)
         {
-            Gems += count;
-            PlayerPrefs.SetInt("Gems", Gems);
-            PlayerPrefs.Save();
+            SetGems(Gems + count);
 #if PLAYFAB || GAMESPARKS || EPSILON
             NetworkManager.currencyManager.IncBalance(count);
 #endif
@@ -220,9 +262,7 @@ namespace SweetSugar.Scripts.Core
         public void SpendGems(int count)
         {
             SoundBase.Instance.PlayOneShot(SoundBase.Instance.cash);
-            Gems -= count;
-            PlayerPrefs.SetInt("Gems", Gems);
-            PlayerPrefs.Save();
+            SetGems(Gems - count);
 #if PLAYFAB || GAMESPARKS || EPSILON
             NetworkManager.currencyManager.DecBalance(count);
 #endif
