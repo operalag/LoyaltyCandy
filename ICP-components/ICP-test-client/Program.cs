@@ -30,5 +30,5 @@ counterValue = await climateClient.Bump();
 Console.WriteLine(counterValue.ToString());
 
 
-counterValue = await climateClient.Set((uint) 345);
+counterValue = await climateClient.Set((uint) 500);
 Console.WriteLine(counterValue.ToString());

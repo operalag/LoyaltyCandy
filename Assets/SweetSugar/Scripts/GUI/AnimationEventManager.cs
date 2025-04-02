@@ -49,6 +49,7 @@ namespace SweetSugar.Scripts.GUI
         public Sprite settingSprite;
         public Sprite backButtonSprite;
         public GameObject profilePopup;
+        public GameObject leaderBoard;
 
         void OnEnable()
         {
@@ -153,6 +154,7 @@ namespace SweetSugar.Scripts.GUI
                     backButtonImage.sprite = backButtonSprite;
                 }
             }
+
         }
 
         void Update()
@@ -651,6 +653,14 @@ namespace SweetSugar.Scripts.GUI
             PlayerPrefs.SetInt("Music", (int)vol);
             PlayerPrefs.Save();
 
+        }
+
+        public void OpenLeaderboard()
+        {
+            if (leaderBoard != null)
+            {
+                leaderBoard.SetActive(true);
+            }
         }
 
     }
