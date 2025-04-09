@@ -20,7 +20,6 @@ public class RankingUI : MonoBehaviour
         iCPClient = FindAnyObjectByType<ICPClient>();
         iCPClient.OnRankingReceived += UpdateRankingUI;
         iCPClient.OnRead += UpdateRankingUI; // listen when balence is fetched
-        iCPClient.GetRanking(0, 0); // fetch ranking on start
         iCPClient.ReadScore(); // fetch current balane
 
     }

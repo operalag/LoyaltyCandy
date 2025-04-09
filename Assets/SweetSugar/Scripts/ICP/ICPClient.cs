@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using EdjCase.ICP.Agent.Agents;
 using EdjCase.ICP.Candid.Models;
 using LoyaltyCandy.ClimateWallet;
+using LoyaltyCandy.ClimateWallet.Models;
 using LoyaltyCandy.HelloClient;
 using Unity.VisualScripting;
 using UnityEngine;
@@ -112,11 +113,20 @@ namespace LoyaltyCandy {
 
         private IEnumerator ExecuteRankingRead()
         {
-            Debug.Log("Reading ranking");
             List<RankingResult> result = new List<RankingResult>();
-            result.Add(new RankingResult("Casper", 230, 1344));
-            result.Add(new RankingResult("TP", 231, 1310));
-            result.Add(new RankingResult("Tashi", 232, 1002));
+            // result.Add(new RankingResult("Casper", 230, 1344));
+            // result.Add(new RankingResult("TP", 231, 1310));
+            // result.Add(new RankingResult("Tashi", 232, 1002));
+
+            Debug.Log("Reading ranking");
+            Task<ClimateWallet.Models.RankingResult> task = climateClient.GetRanking(1, 1, 5);
+            while (!task.IsCompleted) {
+                yield return new WaitForEndOfFrame();
+            }
+
+            foreach (PRank pRank in task.Result.Ranking) {
+                result.Add(new RankingResult(pRank.Name, pRank.Rank, (int)pRank.Score));
+            }
 
             yield return new WaitForSeconds(1.2f);
 

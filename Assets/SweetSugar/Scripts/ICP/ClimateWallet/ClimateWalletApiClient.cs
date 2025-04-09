@@ -2,6 +2,7 @@ using EdjCase.ICP.Agent.Agents;
 using EdjCase.ICP.Candid.Models;
 using EdjCase.ICP.Candid;
 using System.Threading.Tasks;
+using LoyaltyCandy.ClimateWallet;
 
 namespace LoyaltyCandy.ClimateWallet
 {
@@ -23,6 +24,13 @@ namespace LoyaltyCandy.ClimateWallet
 			CandidArg arg = CandidArg.FromCandid();
 			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "bump", arg);
 			return reply.ToObjects<uint>(this.Converter);
+		}
+
+		public async Task<Models.RankingResult> GetRanking(uint arg0, uint arg1, short arg2)
+		{
+			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(arg0, this.Converter), CandidTypedValue.FromObject(arg1, this.Converter), CandidTypedValue.FromObject(arg2, this.Converter));
+			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "getRanking", arg);
+			return reply.ToObjects<Models.RankingResult>(this.Converter);
 		}
 
 		public async Task Inc()

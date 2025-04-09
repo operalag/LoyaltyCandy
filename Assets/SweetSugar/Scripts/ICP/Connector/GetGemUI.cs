@@ -10,6 +10,8 @@ public class GetGemUI : MonoBehaviour
     public TextMeshProUGUI rank1Text;  
     public TextMeshProUGUI rank2Text;  
     public TextMeshProUGUI rank3Text;  
+
+    public GameObject[] ranks;
     private ICPClient icpClient;
 
     // Start is called before the first frame update
@@ -22,7 +24,6 @@ public class GetGemUI : MonoBehaviour
             icpClient.OnRead += UpdateGemBalance;
             icpClient.OnRankingReceived += UpdateRanking; // Listen for ranking updates
             icpClient.ReadScore(); // Fetching the current gem balance
-            icpClient.GetRanking(0, 0); // Fetch ranking on start
         }
         else
         {
@@ -55,6 +56,10 @@ public class GetGemUI : MonoBehaviour
                 rank2Text.text = $"{rankings[1].Name}: {rankings[1].Gems} Gems";
             if (rankings.Count > 2) 
                 rank3Text.text = $"{rankings[2].Name}: {rankings[2].Gems} Gems";
+
+            foreach (GameObject rank in ranks) {
+                rank.SetActive(true);
+            }
         }
         else
         {
