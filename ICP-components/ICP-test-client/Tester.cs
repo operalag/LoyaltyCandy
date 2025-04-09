@@ -1,4 +1,5 @@
 
+using System.Threading.Tasks;
 using LoyaltyCandy.ClimateWallet;
 using LoyaltyCandy.ClimateWallet.Models;
 
@@ -11,18 +12,17 @@ public class Tester {
         this.climateClient = climateClient;
     }
 
-    public void Init() {
-        Task<PRank> task = climateClient.GetCurrentRanking();
-        task.Wait();
-        currentRank = task.Result;
+    public async Task UpdateCurrentRank() {
+        currentRank = await climateClient.GetCurrentRanking();
     }
 
-    public async Task setScoreAsync(uint score) {
+    public async Task SetScoreAsync(uint score) {
         Console.WriteLine(string.Format("Set score to {0} for rank {1}", score, currentRank.Rank));
         await climateClient.Set(score);
+        await UpdateCurrentRank();
     }
 
-    public async void printRanking(uint before, uint after) {
+    public async Task printRanking(uint before, uint after) {
         if (currentRank != null) {
             Console.WriteLine($"Current ranking for {currentRank.Name}: #{currentRank.Rank} {currentRank.Score}");
         } else {
@@ -30,6 +30,7 @@ public class Tester {
         }
 
         RankingResult result = await climateClient.GetRanking(before, after, currentRank.Rank);
+        Console.WriteLine($"result count {result.Ranking.Count}");
         for (int i=0; i<result.Ranking.Count; i++) {
             PRank pRank = result.Ranking[i];
             if (pRank.Name.Equals(currentRank.Name)) {

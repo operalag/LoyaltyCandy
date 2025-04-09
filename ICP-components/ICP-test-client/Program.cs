@@ -17,7 +17,7 @@ var agent = new HttpAgent(null, network);
 // Console.WriteLine(greeting);
 
 
-Principal canisterId2 = Principal.FromText("by6od-j4aaa-aaaaa-qaadq-cai");
+Principal canisterId2 = Principal.FromText("asrmz-lmaaa-aaaaa-qaaeq-cai");
 ClimateWalletApiClient climateClient = new ClimateWalletApiClient(agent, canisterId2);
 
 // UnboundedUInt counterValue = await climateClient.Read();
@@ -35,5 +35,12 @@ ClimateWalletApiClient climateClient = new ClimateWalletApiClient(agent, caniste
 // Console.WriteLine(counterValue.ToString());
 
 Tester tester = new Tester(climateClient);
-tester.Init();
-tester.printRanking(10, 10);
+await tester.UpdateCurrentRank();
+await tester.SetScoreAsync(231);
+await tester.printRanking(10, 10);
+
+await tester.SetScoreAsync(234);
+await tester.printRanking(1, 1);
+
+await tester.SetScoreAsync(323);
+await tester.printRanking(1, 1);
