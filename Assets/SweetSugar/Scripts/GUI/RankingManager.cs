@@ -1,33 +1,40 @@
 using System;
 using System.Collections.Generic;
 using LoyaltyCandy;
+using LoyaltyCandy.ClimateWallet.Models;
 using UnityEngine;
 
 public class RankingManager : MonoBehaviour
 {
     private ICPClient icpClient;
+    private PRank currentRank;
 
     void Start()
     {
-        icpClient = ICPConnector.Client;
-        
-        icpClient.OnRankingReceived += OnRankingReceived;
+        Setup();
     }
 
-    public void RetrieveRanking() {
-        icpClient.GetRanking(1, 1);
+    private void Setup()
+    {
+        if (icpClient == null) {
+            icpClient = ICPConnector.Client;
+            icpClient.OnRankUpdated += OnRankUpdated;
+        }
+
+        if (currentRank == null) {
+            icpClient.GetCurrentRank();
+        }
     }
 
-    private void OnRankingReceived(bool success, object result, string message)
+    private void OnRankUpdated(bool success, object result, string message)
     {
         if (success) {
             // convert the result to a list of rankings
-            if (result.GetType() == typeof(List<RankingResult>)) {
-                List<RankingResult> rankings = (List<RankingResult>) result;
-                // TODO update the UI
-
+            if (result.GetType() == typeof(PRank)) {
+                currentRank = (PRank)result;
+                icpClient.GetRanking(1, 1, currentRank.Rank);
             } else {
-                Debug.LogError(string.Format("Not a ranking result {} {}", result.GetType(), result.ToString()));
+                Debug.LogError(string.Format("Not a rank result {} {}", result.GetType(), result.ToString()));
             }
         } else {
             if (!success) {
@@ -37,6 +44,13 @@ public class RankingManager : MonoBehaviour
             }
         }
     }
+
+    public void RetrieveRanking() {
+        if (icpClient != null) {
+            icpClient.GetRanking(1, 1, currentRank.Rank);
+        }
+    }
+
 }
 
 public class RankingResult {

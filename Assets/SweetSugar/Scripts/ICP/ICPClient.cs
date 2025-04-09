@@ -19,6 +19,7 @@ namespace LoyaltyCandy {
         public event ResultHandler OnSet;
 
         public event ResultHandler OnRankingReceived;
+        public event ResultHandler OnRankUpdated;
 
         public ICPCanisterConfig Config {get { return configuration;} private set{}}
 
@@ -106,20 +107,37 @@ namespace LoyaltyCandy {
             checking = false;
         }
 
-        internal void GetRanking(int before, int after)
+        internal void GetCurrentRank()
         {
-            StartCoroutine(ExecuteRankingRead());
+            StartCoroutine(ExecuteCurrentRankRead());
         }
 
-        private IEnumerator ExecuteRankingRead()
+        private IEnumerator ExecuteCurrentRankRead()
+        {
+            Debug.Log("Reading current rank");
+            Task<PRank> task = climateClient.GetCurrentRanking();
+            while (!task.IsCompleted) {
+                yield return new WaitForEndOfFrame();
+            }
+
+            if (OnRankingReceived != null) {
+                OnRankUpdated(true, task.Result, null);
+            }
+
+            yield return null;
+        }
+
+        internal void GetRanking(int before, int after, short rank)
+        {
+            StartCoroutine(ExecuteRankingRead((uint)before, (uint)after, rank));
+        }
+
+        private IEnumerator ExecuteRankingRead(uint before, uint after, short rank)
         {
             List<RankingResult> result = new List<RankingResult>();
-            // result.Add(new RankingResult("Casper", 230, 1344));
-            // result.Add(new RankingResult("TP", 231, 1310));
-            // result.Add(new RankingResult("Tashi", 232, 1002));
 
             Debug.Log("Reading ranking");
-            Task<ClimateWallet.Models.RankingResult> task = climateClient.GetRanking(1, 1, 5);
+            Task<ClimateWallet.Models.RankingResult> task = climateClient.GetRanking(before, after, rank);
             while (!task.IsCompleted) {
                 yield return new WaitForEndOfFrame();
             }
@@ -127,8 +145,6 @@ namespace LoyaltyCandy {
             foreach (PRank pRank in task.Result.Ranking) {
                 result.Add(new RankingResult(pRank.Name, pRank.Rank, (int)pRank.Score));
             }
-
-            yield return new WaitForSeconds(1.2f);
 
             if (OnRankingReceived != null) {
                 OnRankingReceived(true, result, null);

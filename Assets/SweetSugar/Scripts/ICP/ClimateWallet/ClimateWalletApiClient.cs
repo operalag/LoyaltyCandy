@@ -26,6 +26,13 @@ namespace LoyaltyCandy.ClimateWallet
 			return reply.ToObjects<uint>(this.Converter);
 		}
 
+		public async Task<Models.PRank> GetCurrentRanking()
+		{
+			CandidArg arg = CandidArg.FromCandid();
+			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "getCurrentRanking", arg);
+			return reply.ToObjects<Models.PRank>(this.Converter);
+		}
+
 		public async Task<Models.RankingResult> GetRanking(uint arg0, uint arg1, short arg2)
 		{
 			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(arg0, this.Converter), CandidTypedValue.FromObject(arg1, this.Converter), CandidTypedValue.FromObject(arg2, this.Converter));

@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 using LoyaltyCandy;
+using SweetSugar.Scripts.Core;
+using Unity.VisualScripting;
 
 public class GetGemUI : MonoBehaviour
 {
@@ -17,12 +19,15 @@ public class GetGemUI : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        icpClient = FindAnyObjectByType<ICPClient>();
+        icpClient = ICPConnector.Client;
 
         if (icpClient != null)
         {
             icpClient.OnRead += UpdateGemBalance;
             icpClient.OnRankingReceived += UpdateRanking; // Listen for ranking updates
+
+            // set temp score 
+            UpdateGemBalance(true, (uint) InitScript.Gems, null);
             icpClient.ReadScore(); // Fetching the current gem balance
         }
         else
