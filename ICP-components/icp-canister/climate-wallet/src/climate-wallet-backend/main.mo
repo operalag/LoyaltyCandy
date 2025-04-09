@@ -43,6 +43,8 @@ actor LoyaltyGame {
     list := List.push(nima, list);
     let casper:PlayerRank = { name = "Casper"; var score = 231; var rank = 8};
     currentPlayerRank := casper;
+    Debug.print("initialising curent player rank");
+    Debug.print(debug_show currentPlayerRank);
     list := List.push(casper, list);
     let ugyenrinzin:PlayerRank = { name = "Ugyen Rinzin"; var score = 125; var rank = 9};
     list := List.push(ugyenrinzin, list);
@@ -109,7 +111,6 @@ actor LoyaltyGame {
     };
 
     var list = List.nil<PRank>();
-    let currentRank = ranking.get(rank);
     let value = toNat16(before);
     let bInt = switch (value) {
       case (?value) value;
@@ -127,8 +128,11 @@ actor LoyaltyGame {
       };
     };
 
+    let currentRank = ranking.get(rank);
     let pr = toPRank(currentRank);
     if (pr != EMPTY_RANK) {
+      Debug.print("pr");
+      Debug.print(debug_show pr);
       list := List.append(list, List.push(pr, List.nil<PRank>()));
     };
 
@@ -139,6 +143,9 @@ actor LoyaltyGame {
       case (null) Int16.fromNat16(0);
     };
     var end = rank + bInt2;
+    Debug.print("start end");
+    Debug.print(debug_show start);
+    Debug.print(debug_show end);
     while (start <= end) {
       let pr = toPRank(ranking.get(start));
       if (pr != EMPTY_RANK) {
@@ -148,6 +155,8 @@ actor LoyaltyGame {
     };
 
     let result: RankingResult = {ranking = List.toArray(list)};
+    Debug.print("ranking list");
+    Debug.print(debug_show list);
     result
   };
   
@@ -200,7 +209,7 @@ actor LoyaltyGame {
 
               ranking.put(pRank.rank, pRank);
               ranking.put(upperRank.rank, upperRank);
-              
+
               moveUp(pRank);
             };
           case (null) ();
@@ -213,6 +222,23 @@ actor LoyaltyGame {
     currentPlayerRank.score := count;
     let _ = updateRanking(currentPlayerRank);
     count;
+  };
+
+  // using direct ref to Type so the client generation code doesn't generate an additional class
+  public shared func getCurrentRanking() : async Types.PRank {
+    if (currentPlayerRank.rank < 1) {
+      if (List.size(players) == 0) {
+        players := fullRanking();
+        for(item in List.toIter(players)) {
+          ranking.put(item.rank, item);        
+        };
+      } else {
+        let _ = fullRanking();        
+      };
+    };
+
+    let current = {name = currentPlayerRank.name; rank = currentPlayerRank.rank; score = currentPlayerRank.score;};
+    current
   };
 };
 
