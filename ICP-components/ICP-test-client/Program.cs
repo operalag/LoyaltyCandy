@@ -3,6 +3,7 @@ using EdjCase.ICP.Agent.Agents;
 using EdjCase.ICP.Candid.Models;
 using LoyaltyCandy;
 using LoyaltyCandy.ClimateWallet;
+using LoyaltyCandy.ClimateWallet.Models;
 using LoyaltyCandy.HelloClient;
 
 Console.WriteLine("Hello, World!");
@@ -16,19 +17,23 @@ var agent = new HttpAgent(null, network);
 // Console.WriteLine(greeting);
 
 
-Principal canisterId2 = Principal.FromText("bkyz2-fmaaa-aaaaa-qaaaq-cai");
+Principal canisterId2 = Principal.FromText("by6od-j4aaa-aaaaa-qaadq-cai");
 ClimateWalletApiClient climateClient = new ClimateWalletApiClient(agent, canisterId2);
 
-UnboundedUInt counterValue = await climateClient.Read();
-Console.WriteLine(counterValue.ToString());
+// UnboundedUInt counterValue = await climateClient.Read();
+// Console.WriteLine(counterValue.ToString());
 
-await climateClient.Inc();
-counterValue = await climateClient.Read();
-Console.WriteLine(counterValue.ToString());
+// await climateClient.Inc();
+// counterValue = await climateClient.Read();
+// Console.WriteLine(counterValue.ToString());
 
-counterValue = await climateClient.Bump();
-Console.WriteLine(counterValue.ToString());
+// counterValue = await climateClient.Bump();
+// Console.WriteLine(counterValue.ToString());
 
 
-counterValue = await climateClient.Set((uint) 500);
-Console.WriteLine(counterValue.ToString());
+// counterValue = await climateClient.Set((uint) 345);
+// Console.WriteLine(counterValue.ToString());
+
+Tester tester = new Tester(climateClient);
+tester.Init();
+tester.printRanking(10, 10);
