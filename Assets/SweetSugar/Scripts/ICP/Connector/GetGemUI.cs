@@ -14,6 +14,7 @@ public class GetGemUI : MonoBehaviour
     public TextMeshProUGUI rank3Text;  
 
     public GameObject[] ranks;
+    public GameObject loadingEffect;
     private ICPClient icpClient;
 
     // Start is called before the first frame update
@@ -41,7 +42,7 @@ public class GetGemUI : MonoBehaviour
     {
         if (success && result is uint gems)
         {
-            gemText.text = $"Coins: {gems}";
+            gemText.text = $" {gems}";
         }
         else
         {
@@ -55,15 +56,21 @@ public class GetGemUI : MonoBehaviour
         if (success && result is List<RankingResult> rankings)
         {
             // Display top 3 rankings
+            // Template: #(Ranking) (Name) (Score) (coin image)
             if (rankings.Count > 0) 
-                rank1Text.text = $"{rankings[0].Name}: {rankings[0].Gems} Gems";
+                rank1Text.text = $"#{rankings[0].Ranking}  {rankings[0].Name}: {rankings[0].Gems} ";
             if (rankings.Count > 1) 
-                rank2Text.text = $"{rankings[1].Name}: {rankings[1].Gems} Gems";
+                rank2Text.text = $"#{rankings[1].Ranking}  {rankings[1].Name}: {rankings[1].Gems} ";
             if (rankings.Count > 2) 
-                rank3Text.text = $"{rankings[2].Name}: {rankings[2].Gems} Gems";
+                rank3Text.text = $"#{rankings[2].Ranking}  {rankings[2].Name}: {rankings[2].Gems} ";
 
             foreach (GameObject rank in ranks) {
                 rank.SetActive(true);
+
+                if (loadingEffect != null )
+                {
+                    loadingEffect.SetActive(false);
+                }
             }
         }
         else

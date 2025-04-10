@@ -120,7 +120,7 @@ namespace LoyaltyCandy  {
         [SerializeField]
         private string networkUrl = "http://localhost:4943";
         [SerializeField]
-        private string canisterId = "br5f7-7uaaa-aaaaa-qaaca-cai";
+        private string canisterId = "bd3sg-teaaa-aaaaa-qaaba-cai";
 
         private Principal principal;
 

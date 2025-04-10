@@ -47,7 +47,7 @@ public class RankingManager : MonoBehaviour
 
     public void RetrieveRanking() {
         if (icpClient != null) {
-            icpClient.GetRanking(1, 1, currentRank.Rank);
+            icpClient.GetCurrentRank();
         }
     }
 
