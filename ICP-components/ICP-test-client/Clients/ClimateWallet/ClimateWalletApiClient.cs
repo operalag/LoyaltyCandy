@@ -36,20 +36,8 @@ namespace LoyaltyCandy.ClimateWallet
 		public async Task<Models.RankingResult> GetRanking(uint arg0, uint arg1, short arg2)
 		{
 			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(arg0, this.Converter), CandidTypedValue.FromObject(arg1, this.Converter), CandidTypedValue.FromObject(arg2, this.Converter));
-			Console.WriteLine("asdasd");
-            
 			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "getRanking", arg);
 			return reply.ToObjects<Models.RankingResult>(this.Converter);
-            
-			// Task<CandidArg> task = this.Agent.CallAsync(this.CanisterId, "getRanking", arg);
-			// task.Wait();
-			// if (task.IsCompletedSuccessfully) {
-			// 	CandidArg reply = task.Result;
-			// 	Console.WriteLine("zzcxcz");
-			// 	return reply.ToObjects<Models.RankingResult>(this.Converter);
-			// } else {
-			// 	return null;
-			// }
 		}
 
 		public async Task Inc()

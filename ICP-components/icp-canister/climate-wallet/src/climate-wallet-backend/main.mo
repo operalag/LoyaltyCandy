@@ -21,7 +21,6 @@ actor LoyaltyGame {
 
   stable var players = List.nil<PlayerRank>();
   var ranking = RBTree.RBTree <Int16, PlayerRank>(Int16.compare);
-  var count : Nat32 = 0;
   var currentPlayerRank : PlayerRank = {name = "No one"; var score = 0; var rank = -1;};
   var initRanks = false;
 
@@ -166,43 +165,47 @@ actor LoyaltyGame {
     result
   };
   
-  public shared func inc() : async () { count += 1 };
-
-  public shared func read() : async Nat32 { count };
-
-  public shared func bump() : async Nat32 {
-    count += 1;
-    count;
+  public shared func inc() : async () { 
+    let _ = await set(currentPlayerRank.score + 1);
   };
 
-  func updateRanking(pRank: PlayerRank) : async ()
+  public shared func read() : async Nat32 { currentPlayerRank.score };
+
+  public shared func bump() : async Nat32 {
+    await set(currentPlayerRank.score + 1);
+  };
+
+  func updateRanking(pRank: PlayerRank, value: Nat32) 
   {
-      // var index:Nat = 0;
-      // var found : Bool = false;
-      // let _ = List.iterate(ranking, func(rank : PlayerRank) {
-      //   if (rank.name == name) {
-      //     rank.score := score;
-      //     found := true;
+      // let rank = ranking.get(pRank.rank);
+      // switch (rank) {
+      //   case (?rank) {
+      //     let up = rank.score < pRank.score;
+      //     Debug.print("going up");
+      //     Debug.print(debug_show up);
+      //     Debug.print(debug_show rank.score);
+      //     Debug.print(debug_show pRank.score);
+      //     rank.score := pRank.score;
+      //     if (up) {
+      //       moveUp(rank);
+      //     } else {
+      //       moveDown(rank);
+      //     };
       //   };
-      //   if (not(found)) {
-      //     index := index + 1;
-      //   };
-      // });
-
-      // if (found) {
-      //   let currentRank = List.get<PlayerRank>(ranking, index);
-      //   switch (currentRank) {
-      //     case (?currentRank) moveUp(currentRank, index);
-      //     case (null) ();
-      //   };        
+      //   case (null) ();
       // };
-      let rank = ranking.get(pRank.rank);
-      switch (rank) {
-        case (?rank) rank.score := pRank.score;
-        case (null) ();
-      };
-
+    let up = pRank.score < value;
+    Debug.print("going up");
+    Debug.print(debug_show up);
+    Debug.print(debug_show value);
+    Debug.print(debug_show pRank.score);
+    pRank.score := value;
+    if (up) {
       moveUp(pRank);
+    } else {
+      moveDown(pRank);
+    };
+
   };
 
   func moveUp(pRank: PlayerRank) {
@@ -229,11 +232,37 @@ actor LoyaltyGame {
       };
   };
 
+  func moveDown(pRank: PlayerRank) {
+      var rankNumber: Int16 = pRank.rank+1;
+      let lowerRank = ranking.get(rankNumber);
+      switch (lowerRank) {
+        case (?lowerRank)
+          if (lowerRank.score > pRank.score) {
+            ranking.delete(pRank.rank);
+            ranking.delete(rankNumber);
+            
+            let tmp = pRank.rank;
+            pRank.rank := lowerRank.rank;
+            lowerRank.rank := tmp;
+
+            ranking.put(pRank.rank, pRank);
+            ranking.put(lowerRank.rank, lowerRank);
+
+            moveDown(pRank);
+          };
+        case (null) {
+          // reached bottom
+          // ranking.delete(pRank.rank);
+          // // add to the bottom
+          // pRank.rank := rankNumber;
+          // ranking.put(pRank.rank, pRank);
+        };
+      };
+  };
+
   public shared func set(value : Nat32) : async Nat32 {
-    count := value;
-    currentPlayerRank.score := count;
-    let _ = updateRanking(currentPlayerRank);
-    count;
+    let _ = updateRanking(currentPlayerRank, value);
+    currentPlayerRank.score
   };
 
   // using direct ref to Type so the client generation code doesn't generate an additional class

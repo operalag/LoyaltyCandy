@@ -30,14 +30,12 @@ public class Tester {
         }
 
         RankingResult result = await climateClient.GetRanking(before, after, currentRank.Rank);
-        Console.WriteLine($"result count {result.Ranking.Count}");
         for (int i=0; i<result.Ranking.Count; i++) {
             PRank pRank = result.Ranking[i];
             if (pRank.Name.Equals(currentRank.Name)) {
                 currentRank = pRank;
             }
             Console.WriteLine(string.Format("#{0} {1} ({2})", pRank.Rank.ToString(), pRank.Name, pRank.Score.ToString()));
-            // Console.WriteLine(string.Format("{0}", pRank.Name));
         }
     }
 }
