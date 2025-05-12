@@ -29,6 +29,41 @@ namespace LoyaltyCandy {
         private ClimateWalletApiClient climateClient;
         private int gameBalance;
         private bool checking;
+        private bool isOnline;
+
+        void Start()
+        {
+            CheckOnlineStatus(); // just to test
+        }
+         public void CheckOnlineStatus()
+        {
+            StartCoroutine(ExecuteOnlineStatusCheck());
+        }
+
+        private IEnumerator ExecuteOnlineStatusCheck()
+        {
+            Debug.Log("Checking online status...");
+            Task<uint> task = climateClient.Read(); //read to confirm online
+
+            while (!task.IsCompleted)
+            {
+                yield return new WaitForEndOfFrame();
+            }
+
+            isOnline = task.IsCompletedSuccessfully;
+
+            if (isOnline)
+            {
+                Debug.Log("Canister is online.");
+            }
+            else
+            {
+                Debug.LogWarning("Canister is offline");
+            }
+
+            yield return null;
+        }
+
 
         internal void Connect(IAgent agent) {
             climateClient = new ClimateWalletApiClient(agent, configuration.CanisterPrincipal);
