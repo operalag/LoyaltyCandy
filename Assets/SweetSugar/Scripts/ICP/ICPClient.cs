@@ -29,7 +29,8 @@ namespace LoyaltyCandy {
 
         private ClimateWalletApiClient climateClient;
         private int gameBalance;
-        private bool checking;        
+        private bool checking;  
+        private bool appliedOfflineGem = false;      
         void Start()
         {  
             StartCoroutine(RepeatedOnlineStatusCheck());
@@ -40,8 +41,7 @@ namespace LoyaltyCandy {
             while (true)
             {
                 yield return ExecuteOnlineStatusCheck();
-                CheckCoinBalance(gameBalance);
-                //yield return new WaitForSeconds(1f); 
+                yield return new WaitForSeconds(10f);
             }
         }
      
@@ -64,7 +64,7 @@ namespace LoyaltyCandy {
 
                 int lastKnownOnlineGem = GetLastKnownBalance(); //last known gem which is online gem
 
-                int offlineGem = currentGems - lastKnownOnlineGem; // Calculate the offline delta
+                int offlineGem = currentGems - lastKnownOnlineGem; // Calculate the offline gem
 
                 Debug.Log($"[Offline Sync] Gem change since last online: {offlineGem} (Current: {currentGems}, Last Known: {lastKnownOnlineGem})");
 
@@ -77,6 +77,39 @@ namespace LoyaltyCandy {
                 Debug.Log("Canister is online."  );
 
                 ApplyOfflineGem();
+
+                // Wait until SaveCoins finishes updating
+                yield return new WaitUntil(() => !checking);
+
+                //Read again to get fresh balance
+                Task<uint> refreshTask = climateClient.Read();
+                while (!refreshTask.IsCompleted)
+                {
+                    yield return null;
+                }
+
+                if (refreshTask.IsCompletedSuccessfully)
+                {
+                    gameBalance = (int)refreshTask.Result;
+
+                // Save updated online value
+                SetLastKnownBalance(gameBalance);
+
+                
+                // Avoid checking again right after applying offline gems
+                if (!appliedOfflineGem)
+                {
+                    CheckCoinBalance(gameBalance); // Only now compare local vs online
+                }
+
+                appliedOfflineGem = false; // reset
+
+                }
+
+                else
+                {
+                    Debug.LogError("Failed to refresh game balance.");
+                }
             }
 
             yield return null;
@@ -236,6 +269,7 @@ namespace LoyaltyCandy {
 
                 // Reset the offline delta value
                 Encryptor.SaveCoins(0);
+                appliedOfflineGem = true;
             }
 
         }
