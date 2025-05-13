@@ -10,6 +10,7 @@ using LoyaltyCandy.ClimateWallet.Models;
 using LoyaltyCandy.HelloClient;
 using Unity.VisualScripting;
 using UnityEngine;
+using GemEncryption;
 
 namespace LoyaltyCandy {
     public class ICPClient : MonoBehaviour
@@ -30,6 +31,7 @@ namespace LoyaltyCandy {
         private int gameBalance;
         private bool checking;
         private bool isOnline;
+        
         void Start()
         {  
             StartCoroutine(RepeatedOnlineStatusCheck());
@@ -69,9 +71,8 @@ namespace LoyaltyCandy {
 
                 Debug.Log($"[Offline Sync] Gem change since last online: {offlineGem} (Current: {currentGems}, Last Known: {lastKnownOnlineGem})");
 
-                // Save the offlineGem to PlayerPrefs
-                PlayerPrefs.SetInt("OfflineGemsSaved", offlineGem); // Save offline delta (difference)
-                PlayerPrefs.Save(); // Make sure changes are saved
+                // Save the offlineGem 
+                Encryptor.SaveCoins(offlineGem);
 
             }
             else
@@ -227,31 +228,20 @@ namespace LoyaltyCandy {
         private void ApplyOfflineGem()
         {
             // Retrieve the offline gem saved earlier
-            int offlineDelta = PlayerPrefs.GetInt("OfflineGemsSaved", 0);
-            if (offlineDelta != 0)
+            int offlineGem = Encryptor.LoadCoins<int>();
+            if (offlineGem != 0)
             {
                 // Get the current gems
                 int currentGems = PlayerPrefs.GetInt("Gems", 0);
 
-                int newGemBalance = currentGems + offlineDelta;
+                int newGemBalance = currentGems + offlineGem;
                 
                 SaveCoins(newGemBalance); // Save the new gem balance to ICP
-                
-                // Update the current gem balance
-               // PlayerPrefs.SetInt("Gems", newGemBalance);
-               // PlayerPrefs.Save();
 
                 // Reset the offline delta value
-                PlayerPrefs.SetInt("OfflineGemsSaved", 0);
-                PlayerPrefs.Save();
+                Encryptor.SaveCoins(0);
+            }
 
-                // Log the updated gem balance
-                Debug.Log($"Offline data applied. New gem balance: {newGemBalance}");
-            }
-            else
-            {
-                Debug.Log("No offline gem to apply.");
-            }
         }
     }
 }
