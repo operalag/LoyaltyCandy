@@ -29,9 +29,7 @@ namespace LoyaltyCandy {
 
         private ClimateWalletApiClient climateClient;
         private int gameBalance;
-        private bool checking;
-        private bool isOnline;
-        
+        private bool checking;        
         void Start()
         {  
             StartCoroutine(RepeatedOnlineStatusCheck());
@@ -59,7 +57,6 @@ namespace LoyaltyCandy {
 
             if (task.IsFaulted || task.Exception != null)
             {
-                isOnline = false;
                 Debug.LogWarning("Canister is offline");
 
                 // Track and save the offline delta only when the canister is offline
@@ -77,7 +74,6 @@ namespace LoyaltyCandy {
             }
             else
             {
-                isOnline = true;
                 Debug.Log("Canister is online."  );
 
                 ApplyOfflineGem();
