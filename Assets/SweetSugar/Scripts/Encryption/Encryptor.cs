@@ -1,96 +1,197 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using Newtonsoft.Json;
+using UnityEngine;
 
 namespace GemEncryption
 {
-    public static class Encryptor
+    public static class Encryptor 
     {
-        private static readonly string part1Key = "MySuper"; //obfuscating
+        public delegate void DataDecryption();
+        public static event DataDecryption OnFailDecryption;
+
+        // Split key components for basic obfuscation
+        private static readonly string part1Key = "MySuper";
         private static readonly string part2Key = "SecretKey";
         private static readonly string part3Key = "123!";
+        private static readonly string part4Key = "Dynamic";
 
+        // Split IV components
         private static readonly string part0IV = "ThisIsA";
         private static readonly string part1IV = "16ByteIV!";
 
-        private static readonly byte[] Key = SHA256.Create().ComputeHash(Encoding.UTF8.GetBytes(part1Key + part2Key + part3Key));
-        private static readonly byte[] IV = Encoding.UTF8.GetBytes(part0IV + part1IV);
+        // Dynamic elements
+        private static string DeviceSalt => $"{SystemInfo.deviceUniqueIdentifier}{SystemInfo.deviceName}";
 
-        public static byte[] Encrypt(string plainText)
+        // Generate dynamic key with device-specific salt
+        private static byte[] GetEncryptionKey()
         {
-            using Aes aes = Aes.Create();
-            aes.Key = Key;
-            aes.IV = IV;
-
-            using var encryptor = aes.CreateEncryptor(aes.Key,aes.IV);
-            using var ms = new MemoryStream();
-            using var cs = new CryptoStream(ms, encryptor, CryptoStreamMode.Write);
-            using var sw = new StreamWriter(cs);
-            sw.Write(plainText);
-            sw.Flush();
-            cs.FlushFinalBlock();
-            return ms.ToArray();
+            string combinedKey = $"{part1Key}{part2Key}{part3Key}{part4Key}{DeviceSalt}";
+            using SHA256 sha = SHA256.Create();
+            return sha.ComputeHash(Encoding.UTF8.GetBytes(combinedKey));
         }
 
-        public static string Decrypt(byte[] ciperText)
+        // Generate dynamic IV with device-specific salt
+        private static byte[] GetEncryptionIV()
         {
-            using Aes aes = Aes.Create();
-            aes.Key = Key;
-            aes.IV = IV;
-
-            using var decryptor = aes.CreateDecryptor(aes.Key, aes.IV);
-            using var ms = new MemoryStream(ciperText);
-            using var cs = new CryptoStream(ms, decryptor, CryptoStreamMode.Read);
-            using var sr = new StreamReader(cs);
-            return sr.ReadToEnd();
+            string combinedIV = $"{part0IV}{part1IV}{DeviceSalt}";
+            byte[] ivBytes = Encoding.UTF8.GetBytes(combinedIV);
+            // Ensure IV is exactly 16 bytes
+            Array.Resize(ref ivBytes, 16);
+            return ivBytes;
         }
 
-        public static void SaveCoins(int coinAmount, bool useEncryption = true)
+        public static byte[] Encrypt<T>(T obj)
         {
-            byte[] data;
-            byte header = useEncryption ? (byte)1 : (byte)0;
-
-            if(useEncryption)
+            try
             {
-                data = Encrypt(coinAmount.ToString());
+                string json = JsonConvert.SerializeObject(obj);
+                string payload = $"{DateTime.UtcNow.Ticks}|{json}";
+
+                using Aes aes = Aes.Create();
+                aes.Key = GetEncryptionKey();
+                aes.IV = GetEncryptionIV();
+
+                using var encryptor = aes.CreateEncryptor(aes.Key, aes.IV);
+                using var ms = new MemoryStream();
+                using (var cs = new CryptoStream(ms, encryptor, CryptoStreamMode.Write))
+                using (var sw = new StreamWriter(cs))
+                {
+                    sw.Write(payload);
+                }
+
+                byte[] encrypted = ms.ToArray();
+
+                // Add HMAC for integrity checking
+                using HMACSHA256 hmac = new HMACSHA256(GetEncryptionKey());
+                byte[] hmacHash = hmac.ComputeHash(encrypted);
+
+                return hmacHash.Concat(encrypted).ToArray();
             }
-            else
+            catch
             {
-                data = Encoding.UTF8.GetBytes(coinAmount.ToString());
+                // OnFailDecryption?.Invoke();
+                return Array.Empty<byte>();
             }
-
-            byte[] dataWithHeader = new byte[data.Length + 1];
-
-            dataWithHeader[0] = header;
-            Buffer.BlockCopy(data, 0, dataWithHeader, 1, data.Length);
-
-            //string path = Application.persistentDataPath + "/coins.dat";
-            string path = @"C:\Users\Scientist\Documents\Project\Personal\Encryption_cs\EncriptedFile\custom_coins.dat"; 
-            File.WriteAllBytes(path, dataWithHeader);
         }
 
-        public static int LoadCoins()
+        public static T Decrypt<T>(byte[] data)
         {
-            //string path = Application.persistentDataPath + "/coins.dat";
-            string path = @"C:\Users\Scientist\Documents\Project\Personal\Encryption_cs\EncriptedFile\custom_coins.dat";
-            if (!File.Exists(path)) return 0;
-
-            byte[] fileBytes = File.ReadAllBytes(path);
-            if(fileBytes.Length < 2) return 0;
-
-            byte header = fileBytes[0];
-            byte[] data = new byte[fileBytes.Length - 1];
-            Buffer.BlockCopy(fileBytes, 1, data, 0, data.Length);
-
-            string result = header switch
+            try
             {
-                1 => Decrypt(data),
-                0 => Encoding.UTF8.GetString(data),
-                _ => throw new InvalidDataException("Unknown encrytion header.")
-            };
+                // Verify minimum length (HMAC-SHA256 is 32 bytes)
+                if (data.Length < 32)
+                {
+                    OnFailDecryption?.Invoke();
+                    return default;
+                }
 
-            return int.TryParse(result, out int coins) ? coins : 0;
+                // Split HMAC and cipher text
+                byte[] hmac = data.Take(32).ToArray();
+                byte[] cipherText = data.Skip(32).ToArray();
+
+                // Verify HMAC
+                using HMACSHA256 hmacChecker = new HMACSHA256(GetEncryptionKey());
+                byte[] expected = hmacChecker.ComputeHash(cipherText);
+
+                if (!expected.SequenceEqual(hmac))
+                {
+                    OnFailDecryption?.Invoke();
+                    return default;
+                }
+
+                using Aes aes = Aes.Create();
+                aes.Key = GetEncryptionKey();
+                aes.IV = GetEncryptionIV();
+
+                using var decryptor = aes.CreateDecryptor();
+                using var ms = new MemoryStream(cipherText);
+                using var cs = new CryptoStream(ms, decryptor, CryptoStreamMode.Read);
+                using var sr = new StreamReader(cs);
+                string decrypted = sr.ReadToEnd();
+
+                // Split timestamp and actual data
+                int separatorIndex = decrypted.IndexOf('|');
+                if (separatorIndex < 0) throw new Exception("Missing timestamp");
+                
+                string timestampStr = decrypted[..separatorIndex];
+                string json = decrypted[(separatorIndex + 1)..];
+
+                // Verify timestamp is reasonable
+                if (!long.TryParse(timestampStr, out long ticks)) throw new Exception("invelid timestamp");
+                if (DateTime.UtcNow - new DateTime(ticks, DateTimeKind.Utc) > TimeSpan.FromDays(30)) // Adjust as needed
+                {
+                    OnFailDecryption?.Invoke();
+                    return default;
+                }
+
+                return JsonConvert.DeserializeObject<T>(json);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"SaveCoins error: {e.Message}");
+                return default;
+            }
+        }
+
+        public static void SaveCoins<T>(T data, string key = "default")
+        {
+            try
+            {
+                byte[] bytes = Encrypt(data);
+            
+                if (bytes == null || bytes.Length == 0)
+                {
+                    Debug.LogError("Failed to encrypt coin data");
+                    return;
+                }
+                string path = GetPath(key);
+                File.WriteAllBytes(path, bytes);
+
+                    // for player prefabs
+                // string base64Data = Convert.ToBase64String(bytes);
+                // PlayerPrefs.SetString("Gemss", base64Data);
+                // PlayerPrefs.Save();
+
+
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"SaveCoins error: {e.Message}");
+            }
+        }
+
+        public static T LoadCoins<T>(string key = "default")
+        {
+            try
+            {
+                string path = GetPath(key);
+                if (!File.Exists(path)) return default;
+                byte[] fileBytes = File.ReadAllBytes(path);
+                return Decrypt<T>(fileBytes) ;
+
+                //for player prefabs
+                // if(!PlayerPrefs.HasKey("Gemss")) return default;
+                // string base64Data = PlayerPrefs.GetString("Gemss");
+                // byte[] encryptedBytes = Convert.FromBase64String(base64Data);
+                // return Decrypt<T>(encryptedBytes);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"LoadCoins error: {e.Message}");
+                return default;
+            }
+        }
+
+        private static string GetPath(string key)
+        {
+            string saltKey = $"data_{key}_{DeviceSalt}";
+            string fileName = Convert.ToBase64String(SHA256.Create().ComputeHash(Encoding.UTF8.GetBytes(saltKey)))
+                .Replace("/", "_").Replace("+", "-")[..16];
+            return Path.Combine(Application.persistentDataPath, $"{fileName}.dat");
         }
     }
 }
