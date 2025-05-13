@@ -30,35 +30,56 @@ namespace LoyaltyCandy {
         private int gameBalance;
         private bool checking;
         private bool isOnline;
-
         void Start()
-        {
-            CheckOnlineStatus(); // just to test
-        }
-         public void CheckOnlineStatus()
-        {
-            StartCoroutine(ExecuteOnlineStatusCheck());
+        {  
+            StartCoroutine(RepeatedOnlineStatusCheck()); //test only
         }
 
+        private IEnumerator RepeatedOnlineStatusCheck()  
+        {
+            while (true)
+            {
+                yield return ExecuteOnlineStatusCheck();
+                CheckCoinBalance(gameBalance);
+               // yield return new WaitForSeconds(1f); // Check every 1 seconds
+            }
+        }
+     
         private IEnumerator ExecuteOnlineStatusCheck()
         {
             Debug.Log("Checking online status...");
-            Task<uint> task = climateClient.Read(); //read to confirm online
+            Task<uint> task = climateClient.Read();
 
             while (!task.IsCompleted)
             {
-                yield return new WaitForEndOfFrame();
+                yield return null;
             }
 
-            isOnline = task.IsCompletedSuccessfully;
-
-            if (isOnline)
+            if (task.IsFaulted || task.Exception != null)
             {
-                Debug.Log("Canister is online.");
+                isOnline = false;
+                Debug.LogWarning("Canister is offline");
+
+                // **Track and save the offline delta only when the canister is offline**
+                int currentGems = PlayerPrefs.GetInt("Gems", 0); // Get the current gems from PlayerPrefs
+                int lastKnownOnline = GetLastKnownBalance(); // Get the last known balance
+                int offlineDelta = currentGems - lastKnownOnline; // Calculate the offline delta
+
+                // Log offline change
+                Debug.Log($"[Offline Sync] Gem change since last online: {offlineDelta} (Current: {currentGems}, Last Known: {lastKnownOnline})");
+
+                // Save the offlineDelta to PlayerPrefs
+                PlayerPrefs.SetInt("OfflineGemsDelta", offlineDelta); // Save offline delta (difference)
+                PlayerPrefs.Save(); // Make sure changes are saved
+                Debug.Log($"Offline gem delta saved: {offlineDelta}");
             }
             else
             {
-                Debug.LogWarning("Canister is offline");
+                isOnline = true;
+                Debug.Log("Canister is online."  );
+
+                // If the canister is online, apply the offline delta if it was saved
+                ApplyOfflineDelta();
             }
 
             yield return null;
@@ -132,14 +153,29 @@ namespace LoyaltyCandy {
 
             if (success) {
                 uint icpValue = (uint) result;
-                int diff = (Mathf.Sign(icpValue) > 0 ? (int) icpValue : gameBalance) - gameBalance;
+                //int diff = (Mathf.Sign(icpValue) > 0 ? (int) icpValue : gameBalance) - gameBalance;
+                int diff = (int)icpValue - gameBalance;
                 Debug.Log("Balance check complete " + diff);
+
+                //Save last known online balance
+               SetLastKnownBalance((int)icpValue);
                 
             } else {
                 Debug.LogError("Error geting balance: " + message);
             }
 
             checking = false;
+        }
+
+        private int GetLastKnownBalance() 
+        {
+            return PlayerPrefs.GetInt("LastKnownOnlineBalance", gameBalance); // fallback to local gameBalance
+        }
+
+        private void SetLastKnownBalance(int balance) 
+        {
+            PlayerPrefs.SetInt("LastKnownOnlineBalance", balance);
+            PlayerPrefs.Save();
         }
 
         internal void GetCurrentRank()
@@ -186,6 +222,38 @@ namespace LoyaltyCandy {
             }
 
             yield return null;
+        }
+
+        private void ApplyOfflineDelta()
+        {
+            // Retrieve the offline delta saved earlier
+            int offlineDelta = PlayerPrefs.GetInt("OfflineGemsDelta", 0);
+            if (offlineDelta != 0)
+            {
+                // Get the current gems
+                int currentGems = PlayerPrefs.GetInt("Gems", 0);
+
+                // Apply the offline delta to the current gems
+                int newGemBalance = currentGems + offlineDelta;
+                
+                // Save the updated gem balance using icpClient
+                SaveCoins(newGemBalance); // Save the new gem balance to ICP
+                
+                // Update the current gem balance
+                PlayerPrefs.SetInt("Gems", newGemBalance);
+                PlayerPrefs.Save();
+
+                // Reset the offline delta value
+                PlayerPrefs.SetInt("OfflineGemsDelta", 0);
+                PlayerPrefs.Save();
+
+                // Log the updated gem balance
+                Debug.Log($"Offline delta applied. New gem balance: {newGemBalance}");
+            }
+            else
+            {
+                Debug.Log("No offline delta to apply.");
+            }
         }
     }
 }
