@@ -154,8 +154,8 @@ namespace LoyaltyCandy {
 
             if (success) {
                 uint icpValue = (uint) result;
-                //int diff = (Mathf.Sign(icpValue) > 0 ? (int) icpValue : gameBalance) - gameBalance;
-                int diff = (int)icpValue - gameBalance;
+                int diff = (Mathf.Sign(icpValue) > 0 ? (int) icpValue : gameBalance) - gameBalance;
+               // int diff = (int)icpValue - gameBalance;
                 Debug.Log("Balance check complete " + diff);
 
                 //Save last known online balance
