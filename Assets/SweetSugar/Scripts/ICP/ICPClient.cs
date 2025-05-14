@@ -59,13 +59,12 @@ namespace LoyaltyCandy {
                 Debug.LogWarning("Canister is offline");
 
                 // Track and save the offline gem only when the canister is offline
-                int currentGems = PlayerPrefs.GetInt("Gems", 0); //current gems from PlayerPrefs
+                int currentGems = PlayerPrefs.GetInt("Gems", 0); 
 
                 int lastKnownOnlineGem = GetLastKnownGemBalance(); //last known gem which is online gem
 
-                int offlineGem = currentGems - lastKnownOnlineGem; // Calculate the offline gem
+                int offlineGem = currentGems - lastKnownOnlineGem; 
 
-                // Save the offlineGem 
                 Encryptor.SaveCoins(offlineGem);
 
             }
@@ -252,14 +251,13 @@ namespace LoyaltyCandy {
             int offlineGems = Encryptor.LoadCoins<int>();
             if (offlineGems != 0)
             {
-                // Get the current gems
                 int lastKnownGem = PlayerPrefs.GetInt("LastKnownOnlineGemBalance", 0);
 
                 int newGemBalance = offlineGems + lastKnownGem;
                 
                 SaveCoins(newGemBalance); // Save the new gem balance to ICP
 
-                // Reset the offline delta value
+                // Reset the offline gem value
                 Encryptor.SaveCoins(0);
                 appliedOfflineGem = true;
             }
