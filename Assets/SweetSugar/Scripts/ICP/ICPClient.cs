@@ -33,21 +33,20 @@ namespace LoyaltyCandy {
         private bool appliedOfflineGem = false;      
         void Start()
         {  
-            StartCoroutine(RepeatedOnlineStatusCheck());
+            StartCoroutine(PeriodicNetworkStatusCheck());
         }
 
-        private IEnumerator RepeatedOnlineStatusCheck()  
+        private IEnumerator PeriodicNetworkStatusCheck()  
         {
             while (true)
             {
-                yield return ExecuteOnlineStatusCheck();
+                yield return CheckNetworkStatus();
                 yield return new WaitForSeconds(10f);
             }
         }
      
-        private IEnumerator ExecuteOnlineStatusCheck()
+        private IEnumerator CheckNetworkStatus()
         {
-            Debug.Log("Checking online status...");
             Task<uint> task = climateClient.Read();
 
             while (!task.IsCompleted)
@@ -59,14 +58,12 @@ namespace LoyaltyCandy {
             {
                 Debug.LogWarning("Canister is offline");
 
-                // Track and save the offline delta only when the canister is offline
+                // Track and save the offline gem only when the canister is offline
                 int currentGems = PlayerPrefs.GetInt("Gems", 0); //current gems from PlayerPrefs
 
-                int lastKnownOnlineGem = GetLastKnownBalance(); //last known gem which is online gem
+                int lastKnownOnlineGem = GetLastKnownGemBalance(); //last known gem which is online gem
 
                 int offlineGem = currentGems - lastKnownOnlineGem; // Calculate the offline gem
-
-                Debug.Log($"[Offline Sync] Gem change since last online: {offlineGem} (Current: {currentGems}, Last Known: {lastKnownOnlineGem})");
 
                 // Save the offlineGem 
                 Encryptor.SaveCoins(offlineGem);
@@ -104,11 +101,6 @@ namespace LoyaltyCandy {
 
                 appliedOfflineGem = false; // reset
 
-                }
-
-                else
-                {
-                    Debug.LogError("Failed to refresh game balance.");
                 }
             }
 
@@ -197,14 +189,14 @@ namespace LoyaltyCandy {
             checking = false;
         }
 
-        private int GetLastKnownBalance() 
+        private int GetLastKnownGemBalance() 
         {
-            return PlayerPrefs.GetInt("LastKnownOnlineBalance", gameBalance); // fallback to local gameBalance
+            return PlayerPrefs.GetInt("LastKnownOnlineGemBalance", gameBalance); // fallback to local gameBalance
         }
 
         private void SetLastKnownBalance(int balance) 
         {
-            PlayerPrefs.SetInt("LastKnownOnlineBalance", balance);
+            PlayerPrefs.SetInt("LastKnownOnlineGemBalance", balance);
             PlayerPrefs.Save();
         }
 
@@ -257,13 +249,13 @@ namespace LoyaltyCandy {
         private void ApplyOfflineGem()
         {
             // Retrieve the offline gem saved earlier
-            int offlineGem = Encryptor.LoadCoins<int>();
-            if (offlineGem != 0)
+            int offlineGems = Encryptor.LoadCoins<int>();
+            if (offlineGems != 0)
             {
                 // Get the current gems
-                int currentGems = PlayerPrefs.GetInt("Gems", 0);
+                int lastKnownGem = PlayerPrefs.GetInt("LastKnownOnlineGemBalance", 0);
 
-                int newGemBalance = currentGems + offlineGem;
+                int newGemBalance = offlineGems + lastKnownGem;
                 
                 SaveCoins(newGemBalance); // Save the new gem balance to ICP
 
