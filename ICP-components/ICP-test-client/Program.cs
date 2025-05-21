@@ -3,7 +3,9 @@ using LoyaltyCandy.NNSLedger;
 using LoyaltyCandy.NNSLedger.Models;
 using SubAccount = System.Collections.Generic.List<System.Byte>;
 
-IIClientWrapper iiClient = new IIClientWrapper();
+Console.WriteLine("Hello, World!");
+Uri network = new Uri("http://192.168.8.72:4943");
+var agent = new HttpAgent(null, network);
 
 // read user id from command line
 // if no user then register
@@ -15,6 +17,8 @@ Console.WriteLine($"Login in User {user.UserNumber}");
 iiClient.Login(user);
 
 
+Principal canisterId2 = Principal.FromText("asrmz-lmaaa-aaaaa-qaaeq-cai");
+ClimateWalletApiClient climateClient = new ClimateWalletApiClient(agent, canisterId2);
 
 // // Step 8: Use delegated identity to call NNS canisters
 Principal ledgerCanisterId = Principal.FromText("ryjl3-tyaaa-aaaaa-aaaba-cai");
