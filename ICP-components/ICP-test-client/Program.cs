@@ -1,51 +1,33 @@
-﻿// See https://aka.ms/new-console-template for more information
-using EdjCase.ICP.Agent.Agents;
+﻿using EdjCase.ICP.Agent.Agents;
+// using EdjCase.ICP.Agent.Models;
+using EdjCase.ICP.Agent.Identities;
 using EdjCase.ICP.Candid.Models;
-using LoyaltyCandy;
-using LoyaltyCandy.ClimateWallet;
-using LoyaltyCandy.ClimateWallet.Models;
-using LoyaltyCandy.HelloClient;
+using LoyaltyCandy.NNSLedger;
+using LoyaltyCandy.NNSLedger.Models;
+using System.Security.Cryptography;
+using LoyaltyCandy.NNSGovernance.Models;
 
-Console.WriteLine("Hello, World!");
-Uri network = new Uri("http://localhost:4943");
-var agent = new HttpAgent(null, network);
-
-// Principal canisterId = Principal.FromText("bkyz2-fmaaa-aaaaa-qaaaq-cai");
-// var helloClient = new HelloClientApiClient(agent, canisterId);
-// string greeting = await helloClient.Greet("Casper");
-
-// Console.WriteLine(greeting);
+IIClientWrapper iiClient = new IIClientWrapper();
 
 
-Principal canisterId2 = Principal.FromText("br5f7-7uaaa-aaaaa-qaaca-cai");
-ClimateWalletApiClient climateClient = new ClimateWalletApiClient(agent, canisterId2);
+// read user id from command line
+// if no user then register
+// IIUser user = iiClient.Register();
+// Console.WriteLine($"User {user.UserNumber} registered");
 
-// UnboundedUInt counterValue = await climateClient.Read();
-// Console.WriteLine(counterValue.ToString());
-
-// await climateClient.Inc();
-// counterValue = await climateClient.Read();
-// Console.WriteLine(counterValue.ToString());
-
-// counterValue = await climateClient.Bump();
-// Console.WriteLine(counterValue.ToString());
+IIUser user = new IIUser(10001L);
+Console.WriteLine($"Login in User {user.UserNumber}");
+iiClient.Login(user);
 
 
-// counterValue = await climateClient.Set((uint) 345);
-// Console.WriteLine(counterValue.ToString());
 
-Tester tester = new Tester(climateClient);
-await tester.UpdateCurrentRank();
-await tester.printRanking(10, 10);
+// // Step 8: Use delegated identity to call NNS canisters
+Principal ledgerCanisterId = Principal.FromText("ryjl3-tyaaa-aaaaa-aaaba-cai");
+NNSLedgerApiClient ledgerClient = new NNSLedgerApiClient(iiClient.DelegateAgent, ledgerCanisterId);
+Console.WriteLine("Ledger Client canister: " + ledgerClient.CanisterId);
 
-// await tester.SetScoreAsync(231);
-// await tester.printRanking(1, 1);
+List<byte> accountIdentifier = AccountHelper.FromPrincipal(iiClient.DelegateAgent.Identity.GetPrincipal());
+AccountBalanceArgs balanceRequest = new AccountBalanceArgs(accountIdentifier);
 
-// await tester.SetScoreAsync(234);
-// await tester.printRanking(1, 1);
-
-await tester.SetScoreAsync(323);
-await tester.printRanking(1, 1);
-
-// await tester.SetScoreAsync(3);
-// await tester.printRanking(1, 1);
+var balance = await ledgerClient.AccountBalance(balanceRequest);
+Console.WriteLine("Balance: " + balance.E8s + " e8s");
