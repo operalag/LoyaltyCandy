@@ -7,10 +7,10 @@ IIClientWrapper iiClient = new IIClientWrapper();
 
 // read user id from command line
 // if no user then register
-// IIUser user = iiClient.Register();
+IIUser user = iiClient.Register();
 // Console.WriteLine($"User {user.UserNumber} registered");
 
-IIUser user = new IIUser(10001L);
+// IIUser user = new IIUser(10001L);
 Console.WriteLine($"Login in User {user.UserNumber}");
 iiClient.Login(user);
 
@@ -26,34 +26,34 @@ List<byte> accountIdentifier = AccountHelper.FromPrincipal(iiClient.DelegateAgen
 string accountHex = BitConverter.ToString(accountIdentifier.ToArray()).Replace("-", "").ToLowerInvariant();
 Console.WriteLine("Your Account Identifier (hex): " + accountHex);
 
-AccountBalanceArgs balanceRequest = new AccountBalanceArgs(accountIdentifier);
+// AccountBalanceArgs balanceRequest = new AccountBalanceArgs(accountIdentifier);
 
-var initialBalance = await ledgerClient.AccountBalance(new AccountBalanceArgs(accountIdentifier));
-Console.WriteLine($"Initial Balance: {initialBalance.E8s / 100_000_000} ICP");
+// var initialBalance = await ledgerClient.AccountBalance(new AccountBalanceArgs(accountIdentifier));
+// Console.WriteLine($"Initial Balance: {initialBalance.E8s / 100_000_000} ICP");
 
-// Transfer ICP (0.5 ICP)
-try 
-{
-    var transferArgs = new TransferArgs 
-    {
-        To = accountIdentifier,
-        Amount = new Tokens { E8s = 50_000_000 },
-        Fee = new Tokens { E8s = 10_000 },
-        Memo = 0,
-        FromSubaccount = null // Main account
-    };
+// // Transfer ICP (0.5 ICP)
+// try 
+// {
+//     var transferArgs = new TransferArgs 
+//     {
+//         To = accountIdentifier,
+//         Amount = new Tokens { E8s = 50_000_000 },
+//         Fee = new Tokens { E8s = 10_000 },
+//         Memo = 0,
+//         FromSubaccount = null // Main account
+//     };
     
-    await ledgerClient.Transfer(transferArgs);
-    Console.WriteLine("Transfer successful!");
-}
-catch (Exception ex)
-{
-    Console.WriteLine($"Transfer failed: {ex.Message}");
-}
+//     await ledgerClient.Transfer(transferArgs);
+//     Console.WriteLine("Transfer successful!");
+// }
+// catch (Exception ex)
+// {
+//     Console.WriteLine($"Transfer failed: {ex.Message}");
+// }
 
-// Check updated balance
-var updatedBalance = await ledgerClient.AccountBalance(new AccountBalanceArgs(accountIdentifier));
-Console.WriteLine($"Updated Balance: {updatedBalance.E8s / 100_000_000} ICP");
+// // Check updated balance
+// var updatedBalance = await ledgerClient.AccountBalance(new AccountBalanceArgs(accountIdentifier));
+// Console.WriteLine($"Updated Balance: {updatedBalance.E8s / 100_000_000} ICP");
 
 
 

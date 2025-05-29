@@ -11,11 +11,12 @@ using System.IO;
 using System;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using UnityEngine;
+using System.Collections;
 
 class SetupData
 {
     public Ed25519Identity SessionKey { get; set; }
-
     public DeviceData DeviceData
     {
         get
@@ -25,6 +26,9 @@ class SetupData
 
         private set { }
     }
+    private Ed25519Identity identity;
+    private DeviceData deviceData;
+    public string FrontendHostname { get { return "http://localhost:8080"; } set { } }
 
     private DeviceData GenerateOrGetDD(byte[] pubKey)
     {
@@ -55,17 +59,13 @@ class SetupData
         return identity;
     }
 
-    private Ed25519Identity identity;
-    private DeviceData deviceData;
-    public string FrontendHostname { get { return "http://localhost:8080"; } set { } }
-
-
     internal Ed25519Identity LoadIdentity()
     {
-        if (identity == null && File.Exists("identity.key"))
+        string identityPath = Path.Combine(Application.persistentDataPath, "identity.key");
+        if (identity == null && File.Exists(identityPath))
         {
             // Read the base64-encoded key from file
-            string base64Key = File.ReadAllText("identity.key");
+            string base64Key = File.ReadAllText(identityPath);
 
             // Convert it back to bytes
             byte[] privateKeyBytes = Convert.FromBase64String(base64Key);
@@ -83,7 +83,7 @@ class SetupData
             string base64Key = Convert.ToBase64String(privateKeyBytes);
 
             // Save to file
-            File.WriteAllText("identity.key", base64Key);
+            File.WriteAllText(identityPath, base64Key);
         }
 
         return identity;
@@ -114,10 +114,10 @@ public class IIClientWrapper
         return new HttpAgent(data.LoadIdentity(), new Uri(hostAddress));
     }
 
-    private async Task<RegisterResponse.RegisteredInfo> RegisterAsync()
+    private async Task<IIUser> RegisterAsync()
     {
         Challenge challenge = await IIClient.CreateChallenge();
-        Console.WriteLine("Challenge Key: " + challenge.ChallengeKey);
+        // Console.WriteLine("Challenge Key: " + challenge.ChallengeKey);
 
         // Simulate solving (for demo)
         ChallengeResult captchaResult = new ChallengeResult
@@ -126,38 +126,41 @@ public class IIClientWrapper
             Chars = "a" // Use dummy value in dev
         };
         RegisterResponse response = await IIClient.Register(data.DeviceData, captchaResult, OptionalValue<Principal>.NoValue());
-
-        return response.AsRegistered();
+        var info = response.AsRegistered();
+        return new IIUser(info.UserNumber);
     }
 
-    public IIUser Register()
+    public IEnumerator RegisterCoroutine(Action<IIUser> onComplete, Action<Exception> onError)
     {
-        Task<RegisterResponse.RegisteredInfo> task = RegisterAsync();
+        Task<IIUser> task = RegisterAsync();
+        while (!task.IsCompleted) yield return null;
 
-        task.Wait();
-
-        return new IIUser(task.Result.UserNumber);
+        if (task.Exception != null)
+            onError?.Invoke(task.Exception.InnerException ?? task.Exception);
+        else
+            onComplete?.Invoke(task.Result);
     }
 
-    public void Login(IIUser user)
+    public async Task LoginAsync(IIUser user)
     {
         Ed25519Identity sessionKey = Ed25519Identity.Generate();
-        List<byte> pubKey = sessionKey.PublicKey.ToDerEncoding().ToList<byte>();
-        Task<(List<byte> userKey, ulong timestamp)> task = IIClient.PrepareDelegation(user.UserNumber, data.FrontendHostname, pubKey, OptionalValue<ulong>.NoValue());
+        List<byte> pubKey = sessionKey.PublicKey.ToDerEncoding().ToList();
 
-        task.Wait();
+        (List<byte> userKey, ulong timestamp) prepareDelegationResp = await IIClient.PrepareDelegation(
+            user.UserNumber, data.FrontendHostname, pubKey, OptionalValue<ulong>.NoValue());
 
-        Task<GetDelegationResponse> task2 = IIClient.GetDelegation(user.UserNumber, data.FrontendHostname, pubKey, task.Result.timestamp);
+        var userKey = prepareDelegationResp.Item1;
+        var timestamp = prepareDelegationResp.Item2;
 
-        task2.Wait();
+        GetDelegationResponse getDelegationResp = await IIClient.GetDelegation(
+            user.UserNumber, data.FrontendHostname, pubKey, timestamp);
 
-        SubjectPublicKeyInfo pubKeyInfo = new SubjectPublicKeyInfo(AlgorithmIdentifier.Ed25519(), task.Result.userKey.ToArray());
-        ICTimestamp expiration = new ICTimestamp(UnboundedUInt.FromUInt64(task.Result.timestamp));
-        byte[] signature = task2.Result.AsSignedDelegation().Signature.ToArray();
+        SubjectPublicKeyInfo pubKeyInfo = new SubjectPublicKeyInfo(AlgorithmIdentifier.Ed25519(), userKey.ToArray());
+        ICTimestamp expiration = new ICTimestamp(UnboundedUInt.FromUInt64(timestamp));
+        byte[] signature = getDelegationResp.AsSignedDelegation().Signature.ToArray();
 
         EdjCase.ICP.Agent.Models.Delegation delegation = new EdjCase.ICP.Agent.Models.Delegation(pubKeyInfo, expiration);
         EdjCase.ICP.Agent.Models.SignedDelegation signedDelegation = new EdjCase.ICP.Agent.Models.SignedDelegation(delegation, signature);
-
         DelegationChain chain = new DelegationChain(
             pubKeyInfo,
             new List<EdjCase.ICP.Agent.Models.SignedDelegation> { signedDelegation }
@@ -166,6 +169,17 @@ public class IIClientWrapper
         // Use delegation to create DelegationIdentity
         DelegationIdentity delegateIdentity = new DelegationIdentity(data.LoadIdentity(), chain);
         DelegateAgent = new HttpAgent(delegateIdentity.Identity, new Uri(data.FrontendHostname));
+    }
+    
+    public IEnumerator LoginCoroutine(IIUser user, Action onComplete, Action<Exception> onError)
+    {
+        Task loginTask = LoginAsync(user);
+        while (!loginTask.IsCompleted) yield return null;
+
+        if (loginTask.Exception != null)
+            onError?.Invoke(loginTask.Exception.InnerException ?? loginTask.Exception);
+        else
+            onComplete?.Invoke();
     }
 }
 
