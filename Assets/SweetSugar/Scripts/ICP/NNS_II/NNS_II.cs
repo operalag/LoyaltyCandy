@@ -10,10 +10,6 @@ using LoyaltyCandy.NNSLedger.Models;
 using System.Security.Cryptography;
 
 
-
-
-
-
 public class NNS_II : MonoBehaviour
 {
     // Start is called before the first frame update
@@ -42,7 +38,7 @@ public class NNS_II : MonoBehaviour
 
 
         //check balace
-         Principal ledgerCanisterId = Principal.FromText("ryjl3-tyaaa-aaaaa-aaaba-cai");
+        Principal ledgerCanisterId = Principal.FromText("ryjl3-tyaaa-aaaaa-aaaba-cai");
         NNSLedgerApiClient ledgerClient = new NNSLedgerApiClient(iiClient.DelegateAgent, ledgerCanisterId);
         Debug.Log("Ledger Client canister: " + ledgerClient.CanisterId);
 

@@ -1,14 +1,9 @@
-﻿using EdjCase.ICP.Agent.Agents;
-// using EdjCase.ICP.Agent.Models;
-using EdjCase.ICP.Agent.Identities;
-using EdjCase.ICP.Candid.Models;
+﻿using EdjCase.ICP.Candid.Models;
 using LoyaltyCandy.NNSLedger;
 using LoyaltyCandy.NNSLedger.Models;
-using System.Security.Cryptography;
-using LoyaltyCandy.NNSGovernance.Models;
+using SubAccount = System.Collections.Generic.List<System.Byte>;
 
 IIClientWrapper iiClient = new IIClientWrapper();
-
 
 // read user id from command line
 // if no user then register
@@ -27,7 +22,54 @@ NNSLedgerApiClient ledgerClient = new NNSLedgerApiClient(iiClient.DelegateAgent,
 Console.WriteLine("Ledger Client canister: " + ledgerClient.CanisterId);
 
 List<byte> accountIdentifier = AccountHelper.FromPrincipal(iiClient.DelegateAgent.Identity.GetPrincipal());
+
+string accountHex = BitConverter.ToString(accountIdentifier.ToArray()).Replace("-", "").ToLowerInvariant();
+Console.WriteLine("Your Account Identifier (hex): " + accountHex);
+
 AccountBalanceArgs balanceRequest = new AccountBalanceArgs(accountIdentifier);
 
-var balance = await ledgerClient.AccountBalance(balanceRequest);
-Console.WriteLine("Balance: " + balance.E8s + " e8s");
+var initialBalance = await ledgerClient.AccountBalance(new AccountBalanceArgs(accountIdentifier));
+Console.WriteLine($"Initial Balance: {initialBalance.E8s / 100_000_000} ICP");
+
+// Transfer ICP (0.5 ICP)
+try 
+{
+    var transferArgs = new TransferArgs 
+    {
+        To = accountIdentifier,
+        Amount = new Tokens { E8s = 50_000_000 },
+        Fee = new Tokens { E8s = 10_000 },
+        Memo = 0,
+        FromSubaccount = null // Main account
+    };
+    
+    await ledgerClient.Transfer(transferArgs);
+    Console.WriteLine("Transfer successful!");
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"Transfer failed: {ex.Message}");
+}
+
+// Check updated balance
+var updatedBalance = await ledgerClient.AccountBalance(new AccountBalanceArgs(accountIdentifier));
+Console.WriteLine($"Updated Balance: {updatedBalance.E8s / 100_000_000} ICP");
+
+
+
+// var mintArgs = new MintArgs
+// {
+//     To = AccountHelper.FromPrincipal(ledgerCanisterId),
+//     Amount = new Tokens { E8s = 1_000_000_000 } // 10 ICP
+// };
+
+// NNSLedgerMintSetup nNSLedgerMintSetup = new NNSLedgerMintSetup(iiClient.DelegateAgent, ledgerCanisterId);
+
+// var result = await nNSLedgerMintSetup.Mint(mintArgs);
+
+// Console.WriteLine("Mint result: " + result);
+
+
+
+// var balance = await ledgerClient.AccountBalance(balanceRequest);
+// Console.WriteLine("Balance: " + balance.E8s + " e8s");

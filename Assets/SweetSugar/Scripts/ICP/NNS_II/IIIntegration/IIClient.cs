@@ -6,6 +6,11 @@ using EdjCase.ICP.Candid;
 using EdjCase.ICP.Agent.Models;
 using LoyaltyCandy.InternetIdentity;
 using LoyaltyCandy.InternetIdentity.Models;
+using System.Linq;
+using System.IO;
+using System;
+using System.Threading.Tasks;
+using System.Collections.Generic;
 
 class SetupData
 {
