@@ -1,79 +1,51 @@
-﻿using EdjCase.ICP.Candid.Models;
-using LoyaltyCandy.NNSLedger;
-using LoyaltyCandy.NNSLedger.Models;
-using SubAccount = System.Collections.Generic.List<System.Byte>;
+﻿// See https://aka.ms/new-console-template for more information
+using EdjCase.ICP.Agent.Agents;
+using EdjCase.ICP.Candid.Models;
+using LoyaltyCandy;
+using LoyaltyCandy.ClimateWallet;
+using LoyaltyCandy.ClimateWallet.Models;
+using LoyaltyCandy.HelloClient;
 
 Console.WriteLine("Hello, World!");
 Uri network = new Uri("http://192.168.8.72:4943");
 var agent = new HttpAgent(null, network);
 
-// read user id from command line
-// if no user then register
-IIUser user = iiClient.Register();
-// Console.WriteLine($"User {user.UserNumber} registered");
+// Principal canisterId = Principal.FromText("bkyz2-fmaaa-aaaaa-qaaaq-cai");
+// var helloClient = new HelloClientApiClient(agent, canisterId);
+// string greeting = await helloClient.Greet("Casper");
 
-// IIUser user = new IIUser(10001L);
-Console.WriteLine($"Login in User {user.UserNumber}");
-iiClient.Login(user);
+// Console.WriteLine(greeting);
 
 
 Principal canisterId2 = Principal.FromText("asrmz-lmaaa-aaaaa-qaaeq-cai");
 ClimateWalletApiClient climateClient = new ClimateWalletApiClient(agent, canisterId2);
 
-// // Step 8: Use delegated identity to call NNS canisters
-Principal ledgerCanisterId = Principal.FromText("ryjl3-tyaaa-aaaaa-aaaba-cai");
-NNSLedgerApiClient ledgerClient = new NNSLedgerApiClient(iiClient.DelegateAgent, ledgerCanisterId);
-Console.WriteLine("Ledger Client canister: " + ledgerClient.CanisterId);
+// UnboundedUInt counterValue = await climateClient.Read();
+// Console.WriteLine(counterValue.ToString());
 
-List<byte> accountIdentifier = AccountHelper.FromPrincipal(iiClient.DelegateAgent.Identity.GetPrincipal());
+// await climateClient.Inc();
+// counterValue = await climateClient.Read();
+// Console.WriteLine(counterValue.ToString());
 
-string accountHex = BitConverter.ToString(accountIdentifier.ToArray()).Replace("-", "").ToLowerInvariant();
-Console.WriteLine("Your Account Identifier (hex): " + accountHex);
-
-// AccountBalanceArgs balanceRequest = new AccountBalanceArgs(accountIdentifier);
-
-// var initialBalance = await ledgerClient.AccountBalance(new AccountBalanceArgs(accountIdentifier));
-// Console.WriteLine($"Initial Balance: {initialBalance.E8s / 100_000_000} ICP");
-
-// // Transfer ICP (0.5 ICP)
-// try 
-// {
-//     var transferArgs = new TransferArgs 
-//     {
-//         To = accountIdentifier,
-//         Amount = new Tokens { E8s = 50_000_000 },
-//         Fee = new Tokens { E8s = 10_000 },
-//         Memo = 0,
-//         FromSubaccount = null // Main account
-//     };
-    
-//     await ledgerClient.Transfer(transferArgs);
-//     Console.WriteLine("Transfer successful!");
-// }
-// catch (Exception ex)
-// {
-//     Console.WriteLine($"Transfer failed: {ex.Message}");
-// }
-
-// // Check updated balance
-// var updatedBalance = await ledgerClient.AccountBalance(new AccountBalanceArgs(accountIdentifier));
-// Console.WriteLine($"Updated Balance: {updatedBalance.E8s / 100_000_000} ICP");
+// counterValue = await climateClient.Bump();
+// Console.WriteLine(counterValue.ToString());
 
 
+// counterValue = await climateClient.Set((uint) 345);
+// Console.WriteLine(counterValue.ToString());
 
-// var mintArgs = new MintArgs
-// {
-//     To = AccountHelper.FromPrincipal(ledgerCanisterId),
-//     Amount = new Tokens { E8s = 1_000_000_000 } // 10 ICP
-// };
+Tester tester = new Tester(climateClient);
+await tester.UpdateCurrentRank();
+await tester.printRanking(10, 10);
 
-// NNSLedgerMintSetup nNSLedgerMintSetup = new NNSLedgerMintSetup(iiClient.DelegateAgent, ledgerCanisterId);
+// await tester.SetScoreAsync(231);
+// await tester.printRanking(1, 1);
 
-// var result = await nNSLedgerMintSetup.Mint(mintArgs);
+// await tester.SetScoreAsync(234);
+// await tester.printRanking(1, 1);
 
-// Console.WriteLine("Mint result: " + result);
+await tester.SetScoreAsync(323);
+await tester.printRanking(1, 1);
 
-
-
-// var balance = await ledgerClient.AccountBalance(balanceRequest);
-// Console.WriteLine("Balance: " + balance.E8s + " e8s");
+// await tester.SetScoreAsync(3);
+// await tester.printRanking(1, 1);
