@@ -13,6 +13,9 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using UnityEngine;
 using System.Collections;
+using LoyaltyCandy.NNSLedger;
+using LoyaltyCandy.NNSLedger.Models;
+using Unity.VisualScripting.Antlr3.Runtime;
 
 class SetupData
 {
@@ -62,10 +65,14 @@ class SetupData
     internal Ed25519Identity LoadIdentity()
     {
         string identityPath = Path.Combine(Application.persistentDataPath, "identity.key");
-        if (identity == null && File.Exists(identityPath))
+        
+        bool dataExist = PlayerPrefs.HasKey("It_Is_You");
+        // if (identity == null && File.Exists(identityPath))
+        if (identity == null && dataExist)
         {
             // Read the base64-encoded key from file
-            string base64Key = File.ReadAllText(identityPath);
+            // string base64Key = File.ReadAllText(identityPath);
+            string base64Key = PlayerPrefs.GetString("It_Is_You");
 
             // Convert it back to bytes
             byte[] privateKeyBytes = Convert.FromBase64String(base64Key);
@@ -83,7 +90,9 @@ class SetupData
             string base64Key = Convert.ToBase64String(privateKeyBytes);
 
             // Save to file
-            File.WriteAllText(identityPath, base64Key);
+            // File.WriteAllText(identityPath, base64Key);
+            PlayerPrefs.SetString("It_Is_You", base64Key);
+            PlayerPrefs.Save();
         }
 
         return identity;
@@ -94,17 +103,21 @@ class SetupData
 public class IIClientWrapper
 {
     public HttpAgent DelegateAgent { get; private set; }
-    public Principal CanisterPrincipal { get; private set; }
+    public Principal IICanisterPrincipal { get; private set; }
+    public Principal LedgerCanisterPrincipal { get; private set; }
     public InternetIdentityApiClient IIClient { get; set; }
+    public NNSLedgerApiClient ledgerClient { get; set; }
 
     private SetupData data = new SetupData();
     private HttpAgent Agent { get; set; }
 
-    public IIClientWrapper(string iiCanisterId = "qhbym-qaaaa-aaaaa-aaafq-cai")
+    public IIClientWrapper(string iiCanisterId = "qhbym-qaaaa-aaaaa-aaafq-cai", string ledgerCanisterId = "ryjl3-tyaaa-aaaaa-aaaba-cai")
     {
-        this.CanisterPrincipal = Principal.FromText(iiCanisterId);
+        this.IICanisterPrincipal = Principal.FromText(iiCanisterId);
+        this.LedgerCanisterPrincipal = Principal.FromText(ledgerCanisterId);
         this.Agent = SetupAgent(data.FrontendHostname);
-        this.IIClient = new InternetIdentityApiClient(Agent, CanisterPrincipal, new CandidConverter());
+        this.IIClient = new InternetIdentityApiClient(Agent, IICanisterPrincipal, new CandidConverter());
+        
     }
 
     public HttpAgent SetupAgent(string hostAddress)
@@ -170,16 +183,58 @@ public class IIClientWrapper
         DelegationIdentity delegateIdentity = new DelegationIdentity(data.LoadIdentity(), chain);
         DelegateAgent = new HttpAgent(delegateIdentity.Identity, new Uri(data.FrontendHostname));
     }
-    
+
     public IEnumerator LoginCoroutine(IIUser user, Action onComplete, Action<Exception> onError)
     {
         Task loginTask = LoginAsync(user);
+
         while (!loginTask.IsCompleted) yield return null;
 
         if (loginTask.Exception != null)
             onError?.Invoke(loginTask.Exception.InnerException ?? loginTask.Exception);
         else
             onComplete?.Invoke();
+    }
+
+    public async Task<AccountBalanceInfo> CheckICPBalanceAsync()
+    {
+        List<byte> accountIdentifier = AccountHelper.FromPrincipal(DelegateAgent.Identity.GetPrincipal());
+        string accountHex = BitConverter.ToString(accountIdentifier.ToArray()).Replace("-", "").ToLowerInvariant();
+        this.ledgerClient = new NNSLedgerApiClient(DelegateAgent, LedgerCanisterPrincipal, new CandidConverter());
+
+        // Debug.Log("Principal: " + ledgerClient.Agent.Identity);
+        // Debug.Log("Your Account Identifier (hex): " + accountHex);
+
+        var accountBalance = await ledgerClient.AccountBalance(new AccountBalanceArgs(accountIdentifier));
+        ulong icpBalance = accountBalance.E8s / 100_000_000;
+        // Console.WriteLine($"Updated Balance: {icpBalance} ICP");
+
+        return new AccountBalanceInfo(accountIdentifier, accountHex, icpBalance);  
+    }
+
+    public IEnumerator ICPBalanceCoroutine(Action<AccountBalanceInfo> onComplete, Action<Exception> onError)
+    {
+        Task<AccountBalanceInfo> balanceCheck = CheckICPBalanceAsync();
+        while (!balanceCheck.IsCompleted) yield return null;
+
+        if (balanceCheck.Exception != null)
+            onError?.Invoke(balanceCheck.Exception.InnerException ?? balanceCheck.Exception);
+        else
+            onComplete?.Invoke(balanceCheck.Result);
+    }
+}
+
+public class AccountBalanceInfo
+{
+    public List<byte> AccountID { get; private set; }
+    public string AccountIDHex { get; private set; }
+    public ulong ICPBalance { get; private set; }
+
+    public AccountBalanceInfo(List<byte> accountID, string accountIdHex, ulong icpBalance)
+    {
+        AccountID = accountID;
+        AccountIDHex = accountIdHex;
+        ICPBalance = icpBalance;
     }
 }
 

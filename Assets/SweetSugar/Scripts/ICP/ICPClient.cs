@@ -70,7 +70,7 @@ namespace LoyaltyCandy {
             }
             else
             {
-                Debug.Log("Canister is online."  );
+                // Debug.Log("Canister is online."  );
 
                 ApplyOfflineGem();
 
@@ -112,7 +112,7 @@ namespace LoyaltyCandy {
         }
 
         public void ReadScore() {
-            Debug.Log("Reading score");
+            // Debug.Log("Reading score");
             StartCoroutine(ExecuteRead());
         }
 

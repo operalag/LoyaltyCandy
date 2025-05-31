@@ -12,7 +12,7 @@ IIClientWrapper iiClient = new IIClientWrapper();
 // IIUser user = iiClient.Register();
 // Console.WriteLine($"User {user.UserNumber} registered");
 
-IIUser user = new IIUser(10004L);
+IIUser user = new IIUser(10001L);
 Console.WriteLine($"Login in User {user.UserNumber}");
 iiClient.Login(user);
 
