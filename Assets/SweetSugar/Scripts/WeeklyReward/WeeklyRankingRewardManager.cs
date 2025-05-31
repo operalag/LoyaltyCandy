@@ -1,7 +1,7 @@
 using System;
-using System.Collections;
 using LoyaltyCandy;
 using LoyaltyCandy.ClimateWallet.Models;
+using SweetSugar.Scripts.Core;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -15,7 +15,6 @@ public class WeeklyRankingRewardManager : MonoBehaviour
     private const string LastRewardDateKey = "LastWeeklyRewardDate";
     private const string PlayerClaimKey = "LastPlayerRewardDate";
     private const int InitialRewardPool = 1000000;
-
 
     [Header("UI Elements")]
     public GameObject rewardPanel;
@@ -31,10 +30,7 @@ public class WeeklyRankingRewardManager : MonoBehaviour
         if (claimButton != null) claimButton.onClick.AddListener(OnClaimClicked);
 
         SetupRewardPool();
-        StartCoroutine(WaitForICPClientAndGetRank());
-
-        Debug.Log("Coroutine worked");
-
+        SetupClient();
     }
 
     private void SetupRewardPool()
@@ -47,17 +43,20 @@ public class WeeklyRankingRewardManager : MonoBehaviour
         }
     }
 
-    private IEnumerator WaitForICPClientAndGetRank()
+    private void SetupClient()
     {
-        // Wait until ICPClient is available
-        yield return new WaitUntil(() => ICPConnector.Client != null);
-
         icpClient = ICPConnector.Client;
+
+        if (icpClient == null)
+        {
+            Debug.LogError("ICPClient not found.");
+            return;
+        }
+
         icpClient.OnRankUpdated += OnRankUpdated;
-
-        icpClient.GetCurrentRank(); 
+        icpClient.OnRankingReceived += OnRankUpdated;
+        icpClient.GetCurrentRank(); // Get actual rank
     }
-
     private void OnRankUpdated(bool success, object result, string message)
     {
         if (!success)
@@ -69,13 +68,12 @@ public class WeeklyRankingRewardManager : MonoBehaviour
         if (result is PRank rank)
         {
             currentRank = rank;
-            TryDeductWeeklyPayout();     // Deduct total payout once per week
-            TryGivePlayerReward(rank.Rank); // Give player their reward if eligible
+            TryDeductWeeklyPayout();
+            TryGivePlayerReward(rank.Rank);
         }
-
         else
         {
-             Debug.LogError($"Invalid rank result: {result}");
+            Debug.LogError($"Invalid rank result: {result.GetType()}");
         }
     }
 
@@ -105,11 +103,8 @@ public class WeeklyRankingRewardManager : MonoBehaviour
 
     private void TryGivePlayerReward(int rank)
     {
-        if (rank < 1 || rank > 10)
-            return;
-
-        if (!IsBhutanSundayNight())
-            return;
+        if (rank < 1 || rank > 10) return;
+        if (!IsBhutanSundayNight()) return;
 
         string today = GetBhutanDate();
         string lastClaim = PlayerPrefs.GetString(PlayerClaimKey, "");
@@ -121,10 +116,8 @@ public class WeeklyRankingRewardManager : MonoBehaviour
         }
 
         rewardToDisplay = GetRewardForRank(rank);
-        if (rewardToDisplay <= 0)
-            return;
+        if (rewardToDisplay <= 0) return;
 
-        // Save reward to player's local token store
         int current = PlayerPrefs.GetInt("RewardTokenBalance", 0);
         PlayerPrefs.SetInt("RewardTokenBalance", current + rewardToDisplay);
         PlayerPrefs.SetString(PlayerClaimKey, today);
@@ -134,25 +127,23 @@ public class WeeklyRankingRewardManager : MonoBehaviour
 
         ShowRewardUI(rank, rewardToDisplay);
     }
-    
+
     private void ShowRewardUI(int rank, int reward)
     {
         if (rankText != null) rankText.text = $"#{rank}";
         if (rewardText != null) rewardText.text = $"{reward:N0} Tokens!";
-        if (rewardPanel != null) rewardPanel.SetActive(true);
+        rewardPanel?.SetActive(true);
     }
 
     private void OnClaimClicked()
     {
-        if (rewardPanel != null) rewardPanel.SetActive(false);
+        rewardPanel?.SetActive(false);
         Debug.Log("Reward panel closed by player.");
     }
 
-
     private int GetRewardForRank(int rank)
     {
-        // Reward logic based on rank position
-        switch (rank)
+         switch (rank)
         {
             case 1: return 100000;
             case 2: return 50000;
@@ -164,8 +155,7 @@ public class WeeklyRankingRewardManager : MonoBehaviour
 
     private int GetTotalWeeklyPayout()
     {
-        return 100000 + 50000 + 25000 + (7 * 5000);  // 210,000 tokens
-
+        return 100000 + 50000 + 25000 + (7 * 5000); // 210,000
     }
 
     private bool IsBhutanSundayNight()
@@ -174,7 +164,7 @@ public class WeeklyRankingRewardManager : MonoBehaviour
         // return bhutanTime.DayOfWeek == DayOfWeek.Sunday && bhutanTime.Hour >= 21;
 
         DateTime bhutanTime = DateTime.Now; //PC's local time
-        return bhutanTime.DayOfWeek == DayOfWeek.Friday;
+        return bhutanTime.DayOfWeek == DayOfWeek.Saturday;
     }
 
     private string GetBhutanDate()
@@ -184,11 +174,4 @@ public class WeeklyRankingRewardManager : MonoBehaviour
        return DateTime.Now.ToString("yyyyMMdd");
     }
 
-    
-
-   
-    // public int GetTokenBalance()
-    // {
-    //     return PlayerPrefs.GetInt(TokenKey, 0);
-    // }
 }
