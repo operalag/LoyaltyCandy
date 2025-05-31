@@ -1,7 +1,10 @@
 using System;
+using System.Collections;
 using LoyaltyCandy;
 using LoyaltyCandy.ClimateWallet.Models;
+using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class WeeklyRankingRewardManager : MonoBehaviour
 {
@@ -13,10 +16,25 @@ public class WeeklyRankingRewardManager : MonoBehaviour
     private const string PlayerClaimKey = "LastPlayerRewardDate";
     private const int InitialRewardPool = 1000000;
 
+
+    [Header("UI Elements")]
+    public GameObject rewardPanel;
+    public TextMeshProUGUI rankText;
+    public TextMeshProUGUI rewardText;
+    public Button claimButton;
+
+    private int rewardToDisplay = 0;
+
     void Start()
     {
-        SetupRewardPool();  
-        SetupClient();       // Setup rank and ICP client
+        if (rewardPanel != null) rewardPanel.SetActive(false);
+        if (claimButton != null) claimButton.onClick.AddListener(OnClaimClicked);
+
+        SetupRewardPool();
+        StartCoroutine(WaitForICPClientAndGetRank());
+
+        Debug.Log("Coroutine worked");
+
     }
 
     private void SetupRewardPool()
@@ -29,18 +47,15 @@ public class WeeklyRankingRewardManager : MonoBehaviour
         }
     }
 
-    private void SetupClient()
+    private IEnumerator WaitForICPClientAndGetRank()
     {
+        // Wait until ICPClient is available
+        yield return new WaitUntil(() => ICPConnector.Client != null);
+
         icpClient = ICPConnector.Client;
-        if (icpClient != null)
-        {
-            icpClient.OnRankUpdated += OnRankUpdated;
-            icpClient.GetCurrentRank(); // Triggers rank callback
-        }
-        else
-        {
-            Debug.LogError("ICPClient not found.");
-        }
+        icpClient.OnRankUpdated += OnRankUpdated;
+
+        icpClient.GetCurrentRank(); 
     }
 
     private void OnRankUpdated(bool success, object result, string message)
@@ -105,18 +120,34 @@ public class WeeklyRankingRewardManager : MonoBehaviour
             return;
         }
 
-        int reward = GetRewardForRank(rank);
-        if (reward <= 0)
+        rewardToDisplay = GetRewardForRank(rank);
+        if (rewardToDisplay <= 0)
             return;
 
         // Save reward to player's local token store
         int current = PlayerPrefs.GetInt("RewardTokenBalance", 0);
-        PlayerPrefs.SetInt("RewardTokenBalance", current + reward);
+        PlayerPrefs.SetInt("RewardTokenBalance", current + rewardToDisplay);
         PlayerPrefs.SetString(PlayerClaimKey, today);
         PlayerPrefs.Save();
 
-        Debug.Log($"Player rank {rank}: received {reward} tokens. New balance: {current + reward}");
+        Debug.Log($"Player rank {rank}: received {rewardToDisplay} tokens. New balance: {current + rewardToDisplay}");
+
+        ShowRewardUI(rank, rewardToDisplay);
     }
+    
+    private void ShowRewardUI(int rank, int reward)
+    {
+        if (rankText != null) rankText.text = $"#{rank}";
+        if (rewardText != null) rewardText.text = $"{reward:N0} Tokens!";
+        if (rewardPanel != null) rewardPanel.SetActive(true);
+    }
+
+    private void OnClaimClicked()
+    {
+        if (rewardPanel != null) rewardPanel.SetActive(false);
+        Debug.Log("Reward panel closed by player.");
+    }
+
 
     private int GetRewardForRank(int rank)
     {
@@ -126,14 +157,7 @@ public class WeeklyRankingRewardManager : MonoBehaviour
             case 1: return 100000;
             case 2: return 50000;
             case 3: return 25000;
-            case 4:
-            case 5:
-            case 6:
-            case 7:
-            case 8:
-            case 9:
-            case 10:
-            return 5000;
+            case >= 4 and <= 10: return 5000;
             default: return 0;
         }
     }
@@ -150,7 +174,7 @@ public class WeeklyRankingRewardManager : MonoBehaviour
         // return bhutanTime.DayOfWeek == DayOfWeek.Sunday && bhutanTime.Hour >= 21;
 
         DateTime bhutanTime = DateTime.Now; //PC's local time
-        return bhutanTime.DayOfWeek == DayOfWeek.Thursday;
+        return bhutanTime.DayOfWeek == DayOfWeek.Friday;
     }
 
     private string GetBhutanDate()
