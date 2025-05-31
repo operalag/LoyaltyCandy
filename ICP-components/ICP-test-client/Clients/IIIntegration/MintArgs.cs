@@ -25,14 +25,14 @@ public class NNSLedgerMintSetup
         CanisterId = canisterId;
     }
 
-    public async Task<object> Mint(MintArgs args)
+    public async Task<ulong> Mint(MintArgs args)
     {
         var candidArgs = CandidArg.FromObjects(args);
-        object response = await _agent.CallAsync(
-                    canisterId: CanisterId,
-                    method: "mint",
-                    arg: candidArgs
-                );
-        return response;
+        var response = await _agent.CallAsync(
+            canisterId: CanisterId,
+            method: "icrc1_minting_account",
+            arg: candidArgs
+        );
+        return response.ToObjects<ulong>();
     }
 }

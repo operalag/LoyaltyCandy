@@ -33,6 +33,7 @@ public class NNS_II : MonoBehaviour
             {
                 Debug.Log($"Registered user: {user.UserNumber} registered");
 
+                //logging In
                 StartCoroutine(iiClient.LoginCoroutine(
                     user,
                     onComplete: () =>
