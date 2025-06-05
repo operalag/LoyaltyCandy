@@ -24,4 +24,10 @@ public type RankingResult = {
     ranking: [PRank];
 };
 
+public type GameData = {
+    avatar : Bool;
+    gem : Float;
+  };
+
+
 }

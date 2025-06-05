@@ -7,7 +7,7 @@
 // using LoyaltyCandy.HelloClient;
 
 // Console.WriteLine("Hello, World!");
-// Uri network = new Uri("http://192.168.8.72:4943");
+// Uri network = new Uri("http://localhost:8080");
 // var agent = new HttpAgent(null, network);
 
 // // Principal canisterId = Principal.FromText("bkyz2-fmaaa-aaaaa-qaaaq-cai");
@@ -17,8 +17,8 @@
 // // Console.WriteLine(greeting);
 
 
-// Principal canisterId2 = Principal.FromText("asrmz-lmaaa-aaaaa-qaaeq-cai");
-// ClimateWalletApiClient climateClient = new ClimateWalletApiClient(agent, canisterId2);
+// Principal climateWalletPrincipal = Principal.FromText("uxrrr-q7777-77774-qaaaq-cai");
+// ClimateWalletApiClient climateClient = new ClimateWalletApiClient(agent, climateWalletPrincipal);
 
 // // UnboundedUInt counterValue = await climateClient.Read();
 // // Console.WriteLine(counterValue.ToString());
