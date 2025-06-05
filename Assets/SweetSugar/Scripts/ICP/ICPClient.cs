@@ -212,10 +212,9 @@ namespace LoyaltyCandy {
                 yield return new WaitForEndOfFrame();
             }
 
-            if (OnRankingReceived != null) {
+            if (OnRankUpdated != null) {
                 OnRankUpdated(true, task.Result, null);
             }
-
             yield return null;
         }
 

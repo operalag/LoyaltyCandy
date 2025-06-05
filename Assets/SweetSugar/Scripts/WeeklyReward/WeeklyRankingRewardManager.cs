@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using LoyaltyCandy;
 using LoyaltyCandy.ClimateWallet.Models;
 using SweetSugar.Scripts.Core;
@@ -54,7 +55,7 @@ public class WeeklyRankingRewardManager : MonoBehaviour
         }
 
         icpClient.OnRankUpdated += OnRankUpdated;
-        icpClient.OnRankingReceived += OnRankUpdated;
+        icpClient.OnRankingReceived += OnFullRankingReceived;
         icpClient.GetCurrentRank(); // Get actual rank
     }
     private void OnRankUpdated(bool success, object result, string message)
@@ -76,6 +77,31 @@ public class WeeklyRankingRewardManager : MonoBehaviour
             Debug.LogError($"Invalid rank result: {result.GetType()}");
         }
     }
+
+    private void OnFullRankingReceived(bool success, object result, string message)
+{
+    if (!success)
+    {
+        Debug.LogError("Failed to fetch full ranking: " + message);
+        return;
+    }
+
+    if (result is List<RankingResult> rankings)
+    {
+        Debug.Log("Full leaderboard received.");
+        foreach (var entry in rankings)
+        {
+            Debug.Log($"Rank #{entry.Ranking}: {entry.Name} - {entry.Gems}");
+        }
+    }
+    else
+    {
+        Debug.LogError("Invalid full ranking result: " + result.GetType());
+    }
+}
+
+
+    
 
     private void TryDeductWeeklyPayout()
     {
