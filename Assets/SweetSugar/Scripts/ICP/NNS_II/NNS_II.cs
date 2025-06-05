@@ -15,6 +15,8 @@ public class NNS_II : MonoBehaviour
     internal ulong icpBalance { get; private set; }
     private IIClientWrapper iiClient;
 
+    public GameObject registerButton;
+
     // Start is called before the first frame update
     void Start()
     {
@@ -39,6 +41,7 @@ public class NNS_II : MonoBehaviour
             {
                 Debug.Log($"Registered user: {user.UserNumber} registered");
                 LoginUser(user);
+                registerButton.SetActive(false);
 
             },
             onError: (err) => Debug.LogError("Registration failed: " + err.Message)
@@ -58,6 +61,7 @@ public class NNS_II : MonoBehaviour
 
                 // Now safe to check balance
                 GetICPBalance();
+
             },
             onError: (err) => Debug.LogError("Login failed: " + err.Message)
         ));
