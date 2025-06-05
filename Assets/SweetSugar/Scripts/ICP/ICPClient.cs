@@ -56,7 +56,7 @@ namespace LoyaltyCandy {
 
             if (task.IsFaulted || task.Exception != null)
             {
-               // Debug.LogWarning("Canister is offline");
+                Debug.LogWarning("Canister is offline");
 
                 // Track and save the offline gem only when the canister is offline
                 int currentGems = PlayerPrefs.GetInt("Gems", 0); 

@@ -11,6 +11,9 @@ import Iter "mo:base/Iter";
 import Nat16 "mo:base/Nat16";
 import Nat64 "mo:base/Nat64";
 import Types "./types";
+import Float "mo:base/Float";
+import Principal "mo:base/Principal";
+import HashMap "mo:base/HashMap";
 
 actor LoyaltyGame {
   type RankingResult = Types.RankingResult;
@@ -18,13 +21,69 @@ actor LoyaltyGame {
   type PRank = Types.PRank;
   type Rank = Types.Rank;
   type PlayerName = Types.PlayerName;
+  type GameData = Types.GameData;
+
+  // //stable storage for player data
+  // // Use a stable array of tuples for stable storage, and reconstruct the HashMap at init
+  // stable var playerDataStable : [(Principal, GameData)] = [];
+
+  // var playerData = HashMap.HashMap<Principal, GameData>(16, Principal.equal, Principal.hash);
+
+  // // On actor initialization, reconstruct the HashMap from the stable array
+  // system func preupgrade() {
+  //   playerDataStable := Iter.toArray(playerData.entries());
+  // };
+
+  // system func postupgrade() {
+  //   playerData := HashMap.HashMap<Principal, GameData>(16, Principal.equal, Principal.hash);
+  //   for ((k, v) in playerDataStable.vals()) {
+  //     playerData.put(k, v);
+  //   };
+  // };
+
+  // // --- Player Data Management --- //
+  // // Called when the player sets or updates their data
+  // public shared (msg) func writeGameData(avatar: Bool, gem: Float) : async () {
+  //   let user = msg.caller;
+  //   let data : GameData = { avatar = avatar; gem = gem };
+  //   playerData.put(user, data);
+  //   // Update stable storage
+  //   playerDataStable := Iter.toArray(playerData.entries());
+  //   Debug.print("✅ Data saved for: " # Principal.toText(user));
+  // };
+
+  //  // Called when the game loads — returns the player's data
+  // public shared (msg) func readGameData() : async ?GameData {
+  //   let user = msg.caller;
+  //   Debug.print("📥 Fetching data for: " # Principal.toText(user));
+  //   return playerData.get(user);
+  // };
+
+  //  // --- Admin-Only Functions (Optional) --- //
+  // let ADMINS : [Principal] = [
+  //   Principal.fromText("YOUR-ADMIN-PRINCIPAL-ID")
+  // ];
+
+  // func isAdmin(p : Principal) : Bool {
+  //   Array.find<Principal>(ADMINS, func (admin : Principal) : Bool { admin == p }) != null;
+  // };
+
+  // public shared ({ caller }) func resetPlayerData(targetPlayer : Principal) : async () {
+  //   assert(isAdmin(caller)); // Only admins can call this
+  //   playerData.delete(targetPlayer);
+  // };
+
+
+//ranking
 
   stable var players = List.nil<PlayerRank>();
   var ranking = RBTree.RBTree <Int16, PlayerRank>(Int16.compare);
   var currentPlayerRank : PlayerRank = {name = "No one"; var score = 0; var rank = -1;};
   var initRanks = false;
 
+
   let EMPTY_RANK :PRank = {name=""; rank=0; score=0;};
+
 
   func fullRanking() : List.List<PlayerRank> {
     var list: List.List<PlayerRank> = List.nil<PlayerRank>();
