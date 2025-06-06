@@ -41,7 +41,7 @@ namespace LoyaltyCandy  {
         void Start()
         {
             ConnectTest();
-            ConnectClient();
+            // ConnectClient();
             SetupCoins();
         }
 
@@ -51,13 +51,13 @@ namespace LoyaltyCandy  {
             icpClient.CheckCoinBalance(numCoins);
         }
 
-        private void ConnectClient()
+        internal void ConnectClient(HttpAgent delegateAgent)
         {
             try
             {
                 Uri network = new Uri(icpClient.Config.NetworkURL);
                 HttpAgent agent = new HttpAgent(null, network);
-                icpClient.Connect(agent);
+                icpClient.Connect(delegateAgent);
             }
             catch (UriFormatException e)
             {

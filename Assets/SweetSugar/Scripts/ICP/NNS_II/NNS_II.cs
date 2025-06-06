@@ -7,6 +7,7 @@ using UnityEngine.UI;
 using System.Collections;
 using LoyaltyCandy.NNSLedger.Models;
 using System.Threading.Tasks;
+using LoyaltyCandy;
 
 
 public class NNS_II : MonoBehaviour
@@ -15,7 +16,7 @@ public class NNS_II : MonoBehaviour
     internal ulong icpBalance { get; private set; }
     private IIClientWrapper iiClient;
 
-    public GameObject registerButton;
+    public Button registerButton;
 
     // Start is called before the first frame update
     void Start()
@@ -23,12 +24,6 @@ public class NNS_II : MonoBehaviour
         iiClient = new IIClientWrapper();
         IIUser user = new IIUser((ulong)userID);
         LoginUser(user);
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-
     }
 
     public void RegisterUser()
@@ -41,6 +36,7 @@ public class NNS_II : MonoBehaviour
             {
                 Debug.Log($"Registered user: {user.UserNumber} registered");
                 LoginUser(user);
+                registerButton.enabled = false;
 
             },
             onError: (err) => Debug.LogError("Registration failed: " + err.Message)
@@ -57,7 +53,7 @@ public class NNS_II : MonoBehaviour
             onComplete: () =>
             {
                 Debug.Log("Login successful");
-                registerButton.SetActive(false);
+
                 // Now safe to check balance
                 GetICPBalance();
 

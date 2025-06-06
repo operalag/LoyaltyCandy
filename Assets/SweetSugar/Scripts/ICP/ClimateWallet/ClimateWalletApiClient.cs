@@ -33,9 +33,9 @@ namespace LoyaltyCandy.ClimateWallet
 			return reply.ToObjects<Models.PRank>(this.Converter);
 		}
 
-		public async Task<Models.RankingResult> GetRanking(uint arg0, uint arg1, short arg2)
+		public async Task<Models.RankingResult> GetRanking(uint before, uint after, short rank)
 		{
-			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(arg0, this.Converter), CandidTypedValue.FromObject(arg1, this.Converter), CandidTypedValue.FromObject(arg2, this.Converter));
+			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(before, this.Converter), CandidTypedValue.FromObject(after, this.Converter), CandidTypedValue.FromObject(rank, this.Converter));
 			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "getRanking", arg);
 			return reply.ToObjects<Models.RankingResult>(this.Converter);
 		}
@@ -53,11 +53,24 @@ namespace LoyaltyCandy.ClimateWallet
 			return reply.ToObjects<uint>(this.Converter);
 		}
 
-		public async Task<uint> Set(uint arg0)
+		public async Task<OptionalValue<Models.GameData>> ReadGameData()
 		{
-			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(arg0, this.Converter));
+			CandidArg arg = CandidArg.FromCandid();
+			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "readGameData", arg);
+			return reply.ToObjects<OptionalValue<Models.GameData>>(this.Converter);
+		}
+
+		public async Task<uint> Set(uint value)
+		{
+			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(value, this.Converter));
 			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "set", arg);
 			return reply.ToObjects<uint>(this.Converter);
+		}
+
+		public async Task WriteGameData(bool isMale, double gem)
+		{
+			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(isMale, this.Converter), CandidTypedValue.FromObject(gem, this.Converter));
+			await this.Agent.CallAsync(this.CanisterId, "writeGameData", arg);
 		}
 	}
 }

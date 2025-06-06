@@ -33,7 +33,7 @@ namespace LoyaltyCandy {
         private bool appliedOfflineGem = false;      
         void Start()
         {  
-            StartCoroutine(PeriodicNetworkStatusCheck());
+            // StartCoroutine(PeriodicNetworkStatusCheck());
         }
 
         private IEnumerator PeriodicNetworkStatusCheck()  
@@ -107,8 +107,10 @@ namespace LoyaltyCandy {
         }
 
 
-        internal void Connect(IAgent agent) {
+        internal void Connect(IAgent agent)
+        {
             climateClient = new ClimateWalletApiClient(agent, configuration.CanisterPrincipal);
+            StartCoroutine(PeriodicNetworkStatusCheck());
         }
 
         public void ReadScore() {
