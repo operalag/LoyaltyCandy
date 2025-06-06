@@ -66,7 +66,7 @@ actor LoyaltyGame {
 
     // ========== PLAYER DATA MANAGEMENT ==========
   // Called when the player sets or updates their data
-  public shared(msg) func writeGameData(isMale: Bool, gem: Float) : async () 
+  public shared(msg) func writeGameData(isMale: Bool, gem: Float) : async Text 
   {
     if (Principal.isAnonymous(msg.caller))
     {
@@ -79,11 +79,14 @@ actor LoyaltyGame {
     
     // Update stable storage
     playerDataStable := Iter.toArray(playerData.entries());
+    let principalText = Principal.toText(user);
     Debug.print("Data saved for: " # Principal.toText(user));
+
+    return principalText;
   };
 
    // Called when the game loads — returns the player's data
-  public shared(msg) func readGameData() : async ?GameData 
+  public shared(msg) func readGameData() : async (?GameData, Text)
   {
     if (Principal.isAnonymous(msg.caller)) 
     {
@@ -91,8 +94,11 @@ actor LoyaltyGame {
     };
 
     let user = msg.caller;
+     let data = playerData.get(user);
+    let principalText = Principal.toText(user);
     Debug.print("Fetching data for: " # Principal.toText(user));
-    return playerData.get(user);
+    
+    return (data, principalText);
   };
 
 

@@ -91,8 +91,10 @@ public class IIClientWrapper
     public HttpAgent DelegateAgent { get; private set; }
     public Principal CanisterPrincipal { get; private set; }
     public InternetIdentityApiClient IIClient { get; set; }
+    public string hostAddress { get; private set; }
 
     private SetupData data = new SetupData();
+
     private HttpAgent Agent { get; set; }
 
     public IIClientWrapper(string iiCanisterId = "qhbym-qaaaa-aaaaa-aaafq-cai")
@@ -100,6 +102,7 @@ public class IIClientWrapper
         this.CanisterPrincipal = Principal.FromText(iiCanisterId);
         this.Agent = SetupAgent(data.FrontendHostname);
         this.IIClient = new InternetIdentityApiClient(Agent, CanisterPrincipal, new CandidConverter());
+        this.hostAddress = data.FrontendHostname;
     }
 
     public HttpAgent SetupAgent(string hostAddress)
@@ -172,4 +175,6 @@ public class IIUser
     {
         UserNumber = userNumber;
     }
+    
+
 }
