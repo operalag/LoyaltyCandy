@@ -6,7 +6,7 @@ output-directory = "./Clients"
 
 # Will override default boundry node url (like for local development)
 # Only useful for generating clients from a canister id
-url = "http://localhost:4943"
+url = "http://localhost:8080"
 
 # Will make generated files in a flat structure with no folders, for all clients
 #no-folders = true
@@ -15,14 +15,45 @@ url = "http://localhost:4943"
 # Get the definition from a live canister on the IC
 # Canister to pull definition from
 [[clients]]
-name = "HelloClient"
+name = "NNSRegistry"
 type = "canister"
-canister-id = "bkyz2-fmaaa-aaaaa-qaaaq-cai"
+canister-id = "rwlgt-iiaaa-aaaaa-aaaaa-cai"
 
 [[clients]]
-name = "ClimateWallet"
+name = "NNSGovernance"
 type = "canister"
-canister-id = "br5f7-7uaaa-aaaaa-qaaca-cai"
+canister-id = "rrkah-fqaaa-aaaaa-aaaaq-cai"
+
+[[clients]]
+name = "NNSLedger"
+type = "canister"
+canister-id = "ryjl3-tyaaa-aaaaa-aaaba-cai"
+
+[[clients]]
+name = "NNSRoot"
+type = "canister"
+canister-id = "r7inp-6aaaa-aaaaa-aaabq-cai"
+
+[[clients]]
+name = "NNSCyclesMinting"
+type = "canister"
+canister-id = "rkp4c-7iaaa-aaaaa-aaaca-cai"
+
+[[clients]]
+name = "NNSGenesisToken"
+type = "canister"
+canister-id = "renrk-eyaaa-aaaaa-aaada-cai"
+
+[[clients]]
+name = "InternetIdentity"
+type = "canister"
+canister-id = "qhbym-qaaaa-aaaaa-aaafq-cai"
+
+[[clients]]
+name = "NNSDapp"
+type = "canister"
+canister-id = "qsgjb-riaaa-aaaaa-aaaga-cai"
+
 
 # Get definition from a *.did file
 #type = "file"

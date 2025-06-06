@@ -14,46 +14,15 @@ url = "http://localhost:8080"
 # Defines name folder and api client class name
 # Get the definition from a live canister on the IC
 # Canister to pull definition from
-[[clients]]
-name = "NNSRegistry"
-type = "canister"
-canister-id = "rwlgt-iiaaa-aaaaa-aaaaa-cai"
+# [[clients]]
+# name = "HelloClient"
+# type = "canister"
+# canister-id = "bkyz2-fmaaa-aaaaa-qaaaq-cai"
 
 [[clients]]
-name = "NNSGovernance"
+name = "ClimateWallet"
 type = "canister"
-canister-id = "rrkah-fqaaa-aaaaa-aaaaq-cai"
-
-[[clients]]
-name = "NNSLedger"
-type = "canister"
-canister-id = "ryjl3-tyaaa-aaaaa-aaaba-cai"
-
-[[clients]]
-name = "NNSRoot"
-type = "canister"
-canister-id = "r7inp-6aaaa-aaaaa-aaabq-cai"
-
-[[clients]]
-name = "NNSCyclesMinting"
-type = "canister"
-canister-id = "rkp4c-7iaaa-aaaaa-aaaca-cai"
-
-[[clients]]
-name = "NNSGenesisToken"
-type = "canister"
-canister-id = "renrk-eyaaa-aaaaa-aaada-cai"
-
-[[clients]]
-name = "InternetIdentity"
-type = "canister"
-canister-id = "qhbym-qaaaa-aaaaa-aaafq-cai"
-
-[[clients]]
-name = "NNSDapp"
-type = "canister"
-canister-id = "qsgjb-riaaa-aaaaa-aaaga-cai"
-
+canister-id = "uxrrr-q7777-77774-qaaaq-cai"
 
 # Get definition from a *.did file
 #type = "file"

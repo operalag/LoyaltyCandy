@@ -25,7 +25,7 @@ public type RankingResult = {
 };
 
 public type GameData = {
-    avatar : Bool;
+    isMale : Bool;
     gem : Float;
   };
 

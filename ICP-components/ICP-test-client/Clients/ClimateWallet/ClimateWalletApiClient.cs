@@ -3,7 +3,6 @@ using EdjCase.ICP.Candid.Models;
 using EdjCase.ICP.Candid;
 using System.Threading.Tasks;
 using LoyaltyCandy.ClimateWallet;
-using EdjCase.ICP.Agent.Responses;
 
 namespace LoyaltyCandy.ClimateWallet
 {
@@ -34,42 +33,11 @@ namespace LoyaltyCandy.ClimateWallet
 			return reply.ToObjects<Models.PRank>(this.Converter);
 		}
 
-		public async Task<Models.RankingResult> GetRanking(uint arg0, uint arg1, short arg2)
+		public async Task<Models.RankingResult> GetRanking(uint before, uint after, short rank)
 		{
-			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(arg0, this.Converter), CandidTypedValue.FromObject(arg1, this.Converter), CandidTypedValue.FromObject(arg2, this.Converter));
+			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(before, this.Converter), CandidTypedValue.FromObject(after, this.Converter), CandidTypedValue.FromObject(rank, this.Converter));
 			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "getRanking", arg);
 			return reply.ToObjects<Models.RankingResult>(this.Converter);
-		}
-
-		// --- Core Methods --- //
-		public async Task<Models.GameData> WriteGameDataAsync(bool avatarMale, float gem)
-		{
-			// Convert arguments to Candid values
-			var args = CandidArg.FromCandid(
-				CandidTypedValue.FromObject(avatarMale, this.Converter),
-				CandidTypedValue.FromObject(gem, this.Converter)
-			);
-
-			// Make the async call
-			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "writeGameData", args);
-
-			// Deserialize the response into your model
-			return reply.ToObjects<Models.GameData>(this.Converter);
-		}
-
-		public async Task<Models.GameData> ReadGameDataAsync(Principal playerId)
-		{
-			try
-			{
-				var args = CandidArg.FromCandid(CandidTypedValue.FromObject(playerId, this.Converter));
-				CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "readGameData", args);
-				return reply.ToObjects<Models.GameData>(this.Converter);
-			}
-			catch (Exception e)
-			{
-				Console.WriteLine($"Error reading game data: {e.Message}");
-				return default; // Or throw custom exception
-    		}
 		}
 
 		public async Task Inc()
@@ -85,11 +53,24 @@ namespace LoyaltyCandy.ClimateWallet
 			return reply.ToObjects<uint>(this.Converter);
 		}
 
-		public async Task<uint> Set(uint arg0)
+		public async Task<OptionalValue<Models.GameData>> ReadGameData()
 		{
-			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(arg0, this.Converter));
+			CandidArg arg = CandidArg.FromCandid();
+			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "readGameData", arg);
+			return reply.ToObjects<OptionalValue<Models.GameData>>(this.Converter);
+		}
+
+		public async Task<uint> Set(uint value)
+		{
+			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(value, this.Converter));
 			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "set", arg);
 			return reply.ToObjects<uint>(this.Converter);
+		}
+
+		public async Task WriteGameData(bool isMale, double gem)
+		{
+			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(isMale, this.Converter), CandidTypedValue.FromObject(gem, this.Converter));
+			await this.Agent.CallAsync(this.CanisterId, "writeGameData", arg);
 		}
 	}
 }
