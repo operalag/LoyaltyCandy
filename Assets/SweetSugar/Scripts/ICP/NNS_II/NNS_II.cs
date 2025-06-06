@@ -41,7 +41,6 @@ public class NNS_II : MonoBehaviour
             {
                 Debug.Log($"Registered user: {user.UserNumber} registered");
                 LoginUser(user);
-                registerButton.SetActive(false);
 
             },
             onError: (err) => Debug.LogError("Registration failed: " + err.Message)
@@ -58,7 +57,7 @@ public class NNS_II : MonoBehaviour
             onComplete: () =>
             {
                 Debug.Log("Login successful");
-
+                registerButton.SetActive(false);
                 // Now safe to check balance
                 GetICPBalance();
 
