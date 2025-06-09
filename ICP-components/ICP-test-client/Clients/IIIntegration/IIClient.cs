@@ -25,9 +25,8 @@ class SetupData
     {
         string directory = "identityData"; // Subfolder name
         Directory.CreateDirectory(directory); // Create if it doesn't exist
+
         string path = Path.Combine(directory, $"{userNumber}_identity.key");
-    
-    
         string base64Key = Convert.ToBase64String(privateKeyBytes);
         File.WriteAllText(path, base64Key);
     }
@@ -37,7 +36,6 @@ class SetupData
         string directory = "identityData"; // Subfolder name
         string path = Path.Combine(directory, $"{userNumber}_identity.key");
         
-
         if (!File.Exists(path))
         {
             throw new FileNotFoundException($"Identity file not found for user {userNumber}");
@@ -58,7 +56,7 @@ public class IIClientWrapper
 
     internal SetupData data = new SetupData(); //was private
     private HttpAgent Agent { get; set; }
-    internal DeviceData deviceData;
+    // internal DeviceData deviceData;
 
     public IIClientWrapper(string iiCanisterId = "qhbym-qaaaa-aaaaa-aaafq-cai")
     {
@@ -96,7 +94,7 @@ public class IIClientWrapper
 
     private DeviceData createDeviceData()
     {
-        DeviceData dD = new DeviceData
+        DeviceData deviceData = new DeviceData
         {
             Pubkey = data.GenerateOrGetDeviceKey().PublicKey.ToDerEncoding().ToList(),
             Alias = $"My Device {DateTime.Now:yyyy-MM-dd HH:mm:ss}",
@@ -106,8 +104,8 @@ public class IIClientWrapper
             Protection = DeviceProtection.Unprotected
         };
 
-        deviceData = dD;
-        return dD;
+        // this.deviceData = deviceData;
+        return deviceData;
     }
 
     public IIUser Register()
