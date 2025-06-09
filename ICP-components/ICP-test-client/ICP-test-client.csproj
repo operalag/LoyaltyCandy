@@ -6,11 +6,14 @@
     <RootNamespace>ICP_test_client</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+
+    <NoWarn>CS8618</NoWarn> <!-- //remove this of testing -->
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Crc32.NET" Version="1.2.0" />
     <PackageReference Include="EdjCase.ICP.Agent" Version="7.0.2" />
+    <PackageReference Include="Portable.BouncyCastle" Version="1.9.0" />
     <PackageReference Include="SHA3.Net" Version="2.0.0" />
   </ItemGroup>
 

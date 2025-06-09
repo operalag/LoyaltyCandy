@@ -11,13 +11,24 @@ using EdjCase.ICP.Agent.Identities;
 
 IIClientWrapper iiClient = new IIClientWrapper();
 // IIUser user = iiClient.Register();
-IIUser user = new IIUser(10001L);
+IIUser user = new IIUser(10005L);
 iiClient.Login(user);
 
 Console.WriteLine($"User {user.UserNumber} registered");
-Console.WriteLine($"User PrincipalID: {iiClient.IIClient.GetPrincipal(user.UserNumber, iiClient.hostAddress).Result}");
+Console.WriteLine($"User Principal ID: {iiClient.IIClient.GetPrincipal(user.UserNumber, iiClient.hostAddress).Result}");
 
-Console.WriteLine($"User {iiClient.DelegateAgent.Identity.GetHashCode()} Delegate Identity created");
+ByteArrayToStringConversion delegateIdentityPubkey = new ByteArrayToStringConversion(iiClient.DelegateAgent.Identity.GetPublicKey().PublicKey);
+Console.WriteLine($"User Delegate Identity: {delegateIdentityPubkey.GetString()}");
+
+ByteListToStringConversion iipubkey = new ByteListToStringConversion(iiClient.data.DeviceData.Pubkey);
+Console.WriteLine($"User Device Pubkey: {iipubkey.GetString()}");
+
+Console.WriteLine($"User Alias: {iiClient.data.DeviceData.Alias}");
+Console.WriteLine($"User CredentialId: {iiClient.data.DeviceData.CredentialId}");
+Console.WriteLine($"User Origin: {iiClient.data.DeviceData.Origin}");
+Console.WriteLine($"User Metadata: {iiClient.data.DeviceData.Metadata}");
+
+
 
 // Uri network = new Uri("http://localhost:8080");
 // var agent = new HttpAgent(null, network);

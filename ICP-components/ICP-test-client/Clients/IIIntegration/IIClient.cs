@@ -9,7 +9,10 @@ using LoyaltyCandy.InternetIdentity.Models;
 
 class SetupData
 {
-    public Ed25519Identity SessionKey { get; set; }
+    private Ed25519Identity identity;
+    private DeviceData deviceData;
+    public string FrontendHostname { get { return "http://localhost:8080"; } set { } }
+
 
     public DeviceData DeviceData
     {
@@ -27,11 +30,11 @@ class SetupData
         {
             deviceData = new DeviceData
             {
-                Alias = "MyDevice",
                 Pubkey = pubKey.ToList<byte>(),
-                KeyType = KeyType.SeedPhrase, // Optional
-                Purpose = Purpose.Authentication,
+                Alias = "67567t",
                 CredentialId = null,
+                Purpose = Purpose.Authentication,
+                KeyType = KeyType.SeedPhrase, // Optional
                 Protection = DeviceProtection.Unprotected
             };
         }
@@ -43,20 +46,15 @@ class SetupData
     {
         if (identity == null)
         {
-            // try load from disk if not then generate
             identity = Ed25519Identity.Generate();
-            // Save to disk;
         }
         return identity;
     }
 
-    private Ed25519Identity identity;
-    private DeviceData deviceData;
-    public string FrontendHostname { get { return "http://localhost:8080"; } set { } }
-
 
     internal Ed25519Identity LoadIdentity()
     {
+        // try load from disk if not then generate
         if (identity == null && File.Exists("identity.key"))
         {
             // Read the base64-encoded key from file
@@ -68,6 +66,7 @@ class SetupData
             // Re-create identity
             identity = Ed25519Identity.FromPrivateKey(privateKeyBytes);
         }
+        // Save to disk;
         else if (identity == null)
         {
             identity = GenerateOrGetDeviceKey();
@@ -93,8 +92,7 @@ public class IIClientWrapper
     public InternetIdentityApiClient IIClient { get; set; }
     public string hostAddress { get; private set; }
 
-    private SetupData data = new SetupData();
-
+    internal SetupData data = new SetupData(); //was private
     private HttpAgent Agent { get; set; }
 
     public IIClientWrapper(string iiCanisterId = "qhbym-qaaaa-aaaaa-aaafq-cai")
