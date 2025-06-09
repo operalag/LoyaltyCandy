@@ -76,7 +76,7 @@ public class ByteArrayToStringConversion //only for testing, convertion of byte[
     }
 
 
-    public string GetString()
+    public string ToString()
     {
         // return System.Text.Encoding.UTF8.GetString(data.ToArray());
         return Convert.ToBase64String(data.ToArray());
