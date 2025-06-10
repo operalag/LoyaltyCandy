@@ -29,7 +29,7 @@ public class GetGemUI : MonoBehaviour
 
             // set temp score 
             UpdateGemBalance(true, (uint) InitScript.Gems, null);
-            icpClient.ReadScore(); // Fetching the current gem balance
+            // icpClient.ReadScore(); // Fetching the current gem balance
         }
         else
         {

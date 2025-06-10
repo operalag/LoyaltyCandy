@@ -22,12 +22,15 @@ namespace LoyaltyCandy {
         public event ResultHandler OnRankingReceived;
         public event ResultHandler OnRankUpdated;
 
-        public ICPCanisterConfig Config {get { return configuration;} private set{}}
+        public delegate void ICPClientReady();
+        public event ICPClientReady OnICPClientReady; 
+
+        public ICPCanisterConfig Config { get { return configuration; } private set { } }
 
         [SerializeField]
         private ICPCanisterConfig configuration;
 
-        private ClimateWalletApiClient climateClient;
+        internal ClimateWalletApiClient climateClient;
         private int gameBalance;
         private bool checking;  
         private bool appliedOfflineGem = false;      
@@ -70,7 +73,7 @@ namespace LoyaltyCandy {
             }
             else
             {
-                // Debug.Log("Canister is online."  );
+                Debug.Log("Canister is online."  );
 
                 ApplyOfflineGem();
 
@@ -109,27 +112,33 @@ namespace LoyaltyCandy {
 
         internal void Connect(IAgent agent)
         {
-            climateClient = new ClimateWalletApiClient(agent, configuration.CanisterPrincipal);
+            
+            Principal climateWalletPrincipal = Principal.FromText("uxrrr-q7777-77774-qaaaq-cai");
+            climateClient = new ClimateWalletApiClient(agent, climateWalletPrincipal);
+            if (OnICPClientReady != null) OnICPClientReady();
+            
             StartCoroutine(PeriodicNetworkStatusCheck());
         }
 
         public void ReadScore() {
-            // Debug.Log("Reading score");
             StartCoroutine(ExecuteRead());
         }
 
         private IEnumerator ExecuteRead()
         {
             Task<uint> task = climateClient.Read();
+        
             
-            while (!task.IsCompleted) {
+            while (!task.IsCompleted)
+            {
                 yield return new WaitForEndOfFrame();
             }
 
-            if (OnRead != null) {
+            if (OnRead != null)
+            {
                 OnRead(
-                    task.IsCompletedSuccessfully, 
-                    task.IsCompletedSuccessfully ? task.Result : null, 
+                    task.IsCompletedSuccessfully,
+                    task.IsCompletedSuccessfully ? task.Result : null,
                     !task.IsCompletedSuccessfully ? task.Exception.Message : null);
             }
 

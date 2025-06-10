@@ -16,7 +16,8 @@ public class RankingManager : MonoBehaviour
 
     private void Setup()
     {
-        if (icpClient == null) {
+        if (icpClient == null)
+        {
             icpClient = ICPConnector.Client;
             icpClient.OnRankUpdated += OnRankUpdated;
         }
@@ -46,7 +47,8 @@ public class RankingManager : MonoBehaviour
     }
 
     public void RetrieveRanking() {
-        if (icpClient != null) {
+        if (icpClient != null)
+        {
             icpClient.GetCurrentRank();
         }
     }

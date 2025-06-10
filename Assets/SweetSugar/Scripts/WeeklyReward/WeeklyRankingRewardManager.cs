@@ -31,7 +31,7 @@ public class WeeklyRankingRewardManager : MonoBehaviour
         if (claimButton != null) claimButton.onClick.AddListener(OnClaimClicked);
 
         SetupRewardPool();
-        SetupClient();
+        // SetupClient();
     }
 
     private void SetupRewardPool()

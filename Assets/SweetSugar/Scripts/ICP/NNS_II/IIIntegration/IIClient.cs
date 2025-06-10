@@ -15,68 +15,31 @@ using UnityEngine;
 using System.Collections;
 using LoyaltyCandy.NNSLedger;
 using LoyaltyCandy.NNSLedger.Models;
-using Unity.VisualScripting.Antlr3.Runtime;
 
 class SetupData
 {
-    // public Ed25519Identity SessionKey { get; set; }
-    // public DeviceData DeviceData
-    // {
-    //     get
-    //     {
-    //         return GenerateOrGetDD(GenerateOrGetDeviceKey().PublicKey.ToDerEncoding());
-    //     }
-
-    //     private set { }
-    // }
-    // private DeviceData deviceData;
     private Ed25519Identity identity;
     public string FrontendHostname { get { return "http://localhost:8080"; } set { } }
-
-    // private DeviceData GenerateOrGetDD(byte[] pubKey)
-    // {
-    //     if (deviceData == null)
-    //     {
-    //         deviceData = new DeviceData
-    //         {
-    //             Alias = "MyDevice",
-    //             Pubkey = pubKey.ToList<byte>(),
-    //             KeyType = KeyType.SeedPhrase, // Optional
-    //             Purpose = Purpose.Authentication,
-    //             CredentialId = null,
-    //             Protection = DeviceProtection.Unprotected
-    //         };
-    //     }
-
-    //     return deviceData;
-    // }
 
     internal Ed25519Identity GenerateOrGetDeviceKey()
     {
         if (identity == null)
         {
-            // try load from disk if not then generate
             identity = Ed25519Identity.Generate();
-            // Save to disk;
         }
         return identity;
     }
     
     internal void SaveIdentity(ulong userNumber, byte[] privateKeyBytes)
     {
-        // string directory = "identityData"; // Subfolder name
-        // Directory.CreateDirectory(directory); // Create if it doesn't exist
         string path = Path.Combine(Application.persistentDataPath, $"{userNumber}_identity.key");
 
-        // string path = Path.Combine(directory, $"{userNumber}_identity.key");
         string base64Key = Convert.ToBase64String(privateKeyBytes);
         File.WriteAllText(path, base64Key);
     }
 
     internal Ed25519Identity LoadIdentity(ulong userNumber)
     {
-        // string directory = "identityData"; // Subfolder name
-        // string path = Path.Combine(directory, $"{userNumber}_identity.key");
         string path = Path.Combine(Application.persistentDataPath, $"{userNumber}_identity.key");
         
         if (!File.Exists(path))
@@ -88,43 +51,6 @@ class SetupData
         byte[] privateKeyBytes = Convert.FromBase64String(base64Key);
         return Ed25519Identity.FromPrivateKey(privateKeyBytes);
     }
-
-    // internal Ed25519Identity LoadIdentity()
-    // {
-    //     string identityPath = Path.Combine(Application.persistentDataPath, "identity.key");
-
-    //     bool dataExist = PlayerPrefs.HasKey("It_Is_You");
-    //     // if (identity == null && File.Exists(identityPath))
-    //     if (identity == null && dataExist)
-    //     {
-    //         // Read the base64-encoded key from file
-    //         // string base64Key = File.ReadAllText(identityPath);
-    //         string base64Key = PlayerPrefs.GetString("It_Is_You");
-
-    //         // Convert it back to bytes
-    //         byte[] privateKeyBytes = Convert.FromBase64String(base64Key);
-
-    //         // Re-create identity
-    //         identity = Ed25519Identity.FromPrivateKey(privateKeyBytes);
-    //     }
-    //     else if (identity == null)
-    //     {
-    //         identity = GenerateOrGetDeviceKey();
-    //         // Get raw private key bytes (usually 32 bytes)
-    //         byte[] privateKeyBytes = identity.PrivateKey;
-
-    //         // Convert to base64 or hex for saving (here we use base64)
-    //         string base64Key = Convert.ToBase64String(privateKeyBytes);
-
-    //         // Save to file
-    //         // File.WriteAllText(identityPath, base64Key);
-    //         PlayerPrefs.SetString("It_Is_You", base64Key);
-    //         PlayerPrefs.Save();
-    //     }
-
-    //     return identity;
-    // } 
-
 }
 
 public class IIClientWrapper
@@ -155,14 +81,7 @@ public class IIClientWrapper
         
     }
 
-    // public HttpAgent SetupAgent(string hostAddress)
-    // {
-    //     // this.SessionKey = Ed25519Identity.Generate(); // Or load from existing PEM
-    //     // this.PubKey = [.. SessionKey.GetPublicKey().ToDerEncoding()];
-    //     return new HttpAgent(data.LoadIdentity(), new Uri(hostAddress));
-    // }
-
-     public void SetupAgentWithIdentity(Ed25519Identity identity)
+    public void SetupAgentWithIdentity(Ed25519Identity identity)
     {
         this.Agent = new HttpAgent(identity, new Uri(this.hostAddress));
         this.IIClient = new InternetIdentityApiClient(this.Agent, this.IICanisterPrincipal, new CandidConverter());
@@ -171,7 +90,6 @@ public class IIClientWrapper
     private async Task<RegisterResponse.RegisteredInfo> RegisterAsync()
     {
         Challenge challenge = await IIClient.CreateChallenge();
-        // Console.WriteLine("Challenge Key: " + challenge.ChallengeKey);
 
         // Simulate solving (for demo)
         ChallengeResult captchaResult = new ChallengeResult
@@ -195,8 +113,6 @@ public class IIClientWrapper
             KeyType = KeyType.SeedPhrase,
             Protection = DeviceProtection.Unprotected
         };
-
-        // this.deviceData = deviceData;
         return deviceData;
     }
 
@@ -262,13 +178,8 @@ public class IIClientWrapper
         string accountHex = BitConverter.ToString(accountIdentifier.ToArray()).Replace("-", "").ToLowerInvariant();
         this.ledgerClient = new NNSLedgerApiClient(DelegateAgent, LedgerCanisterPrincipal, new CandidConverter());
 
-        // Debug.Log("Principal: " + ledgerClient.Agent.Identity);
-        // Debug.Log("Your Account Identifier (hex): " + accountHex);
-
         var accountBalance = await ledgerClient.AccountBalance(new AccountBalanceArgs(accountIdentifier));
         ulong icpBalance = accountBalance.E8s / 100_000_000;
-        // Console.WriteLine($"Updated Balance: {icpBalance} ICP");
-
         return new AccountBalanceInfo(accountIdentifier, accountHex, icpBalance);  
     }
 

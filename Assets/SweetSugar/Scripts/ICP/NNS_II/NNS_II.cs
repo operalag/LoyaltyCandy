@@ -19,11 +19,12 @@ public class NNS_II : MonoBehaviour
 
     public Button registerButton;
 
+    [SerializeField] private ICPClient iCPClient;
+
     // Start is called before the first frame update
     void Start()
     {
         iiClient = new IIClientWrapper();
-        // IIUser user = new IIUser((ulong)userID);
         LoginUser((ulong)userID);
     }
 
@@ -52,13 +53,13 @@ public class NNS_II : MonoBehaviour
         Debug.Log($"Logging in ... ");
         Ed25519Identity identity = iiClient.data.LoadIdentity(user.UserNumber);
         iiClient.SetupAgentWithIdentity(identity);
-        
+
         StartCoroutine(iiClient.LoginCoroutine(
             user,
             onComplete: () =>
             {
                 Debug.Log("Login successful");
-
+                iCPClient.Connect(iiClient.DelegateAgent);
                 // Now safe to check balance
                 GetICPBalance();
 
@@ -83,5 +84,3 @@ public class NNS_II : MonoBehaviour
         return Task.CompletedTask;
     }
 }
-
-

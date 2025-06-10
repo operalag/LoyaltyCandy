@@ -42,21 +42,23 @@ namespace LoyaltyCandy  {
         {
             ConnectTest();
             // ConnectClient();
-            SetupCoins();
+            // SetupCoins();
+            icpClient.OnICPClientReady += SetupCoins;
         }
 
         private void SetupCoins()
         {
             int numCoins = PlayerPrefs.GetInt(coinsPreferenceName);
             icpClient.CheckCoinBalance(numCoins);
+            icpClient.OnICPClientReady -= SetupCoins;
         }
 
         internal void ConnectClient(HttpAgent delegateAgent)
         {
             try
             {
-                Uri network = new Uri(icpClient.Config.NetworkURL);
-                HttpAgent agent = new HttpAgent(null, network);
+                // Uri network = new Uri(icpClient.Config.NetworkURL);
+                // HttpAgent agent = new HttpAgent(null, network);
                 icpClient.Connect(delegateAgent);
             }
             catch (UriFormatException e)
