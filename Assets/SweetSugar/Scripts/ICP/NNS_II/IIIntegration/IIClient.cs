@@ -19,39 +19,39 @@ using Unity.VisualScripting.Antlr3.Runtime;
 
 class SetupData
 {
-    public Ed25519Identity SessionKey { get; set; }
-    public DeviceData DeviceData
-    {
-        get
-        {
-            return GenerateOrGetDD(GenerateOrGetDeviceKey().PublicKey.ToDerEncoding());
-        }
+    // public Ed25519Identity SessionKey { get; set; }
+    // public DeviceData DeviceData
+    // {
+    //     get
+    //     {
+    //         return GenerateOrGetDD(GenerateOrGetDeviceKey().PublicKey.ToDerEncoding());
+    //     }
 
-        private set { }
-    }
+    //     private set { }
+    // }
+    // private DeviceData deviceData;
     private Ed25519Identity identity;
-    private DeviceData deviceData;
     public string FrontendHostname { get { return "http://localhost:8080"; } set { } }
 
-    private DeviceData GenerateOrGetDD(byte[] pubKey)
-    {
-        if (deviceData == null)
-        {
-            deviceData = new DeviceData
-            {
-                Alias = "MyDevice",
-                Pubkey = pubKey.ToList<byte>(),
-                KeyType = KeyType.SeedPhrase, // Optional
-                Purpose = Purpose.Authentication,
-                CredentialId = null,
-                Protection = DeviceProtection.Unprotected
-            };
-        }
+    // private DeviceData GenerateOrGetDD(byte[] pubKey)
+    // {
+    //     if (deviceData == null)
+    //     {
+    //         deviceData = new DeviceData
+    //         {
+    //             Alias = "MyDevice",
+    //             Pubkey = pubKey.ToList<byte>(),
+    //             KeyType = KeyType.SeedPhrase, // Optional
+    //             Purpose = Purpose.Authentication,
+    //             CredentialId = null,
+    //             Protection = DeviceProtection.Unprotected
+    //         };
+    //     }
 
-        return deviceData;
-    }
+    //     return deviceData;
+    // }
 
-    private Ed25519Identity GenerateOrGetDeviceKey()
+    internal Ed25519Identity GenerateOrGetDeviceKey()
     {
         if (identity == null)
         {
@@ -61,42 +61,69 @@ class SetupData
         }
         return identity;
     }
-
-    internal Ed25519Identity LoadIdentity()
+    
+    internal void SaveIdentity(ulong userNumber, byte[] privateKeyBytes)
     {
-        string identityPath = Path.Combine(Application.persistentDataPath, "identity.key");
+        // string directory = "identityData"; // Subfolder name
+        // Directory.CreateDirectory(directory); // Create if it doesn't exist
+        string path = Path.Combine(Application.persistentDataPath, $"{userNumber}_identity.key");
+
+        // string path = Path.Combine(directory, $"{userNumber}_identity.key");
+        string base64Key = Convert.ToBase64String(privateKeyBytes);
+        File.WriteAllText(path, base64Key);
+    }
+
+    internal Ed25519Identity LoadIdentity(ulong userNumber)
+    {
+        // string directory = "identityData"; // Subfolder name
+        // string path = Path.Combine(directory, $"{userNumber}_identity.key");
+        string path = Path.Combine(Application.persistentDataPath, $"{userNumber}_identity.key");
         
-        bool dataExist = PlayerPrefs.HasKey("It_Is_You");
-        // if (identity == null && File.Exists(identityPath))
-        if (identity == null && dataExist)
+        if (!File.Exists(path))
         {
-            // Read the base64-encoded key from file
-            // string base64Key = File.ReadAllText(identityPath);
-            string base64Key = PlayerPrefs.GetString("It_Is_You");
-
-            // Convert it back to bytes
-            byte[] privateKeyBytes = Convert.FromBase64String(base64Key);
-
-            // Re-create identity
-            identity = Ed25519Identity.FromPrivateKey(privateKeyBytes);
-        }
-        else if (identity == null)
-        {
-            identity = GenerateOrGetDeviceKey();
-            // Get raw private key bytes (usually 32 bytes)
-            byte[] privateKeyBytes = identity.PrivateKey;
-
-            // Convert to base64 or hex for saving (here we use base64)
-            string base64Key = Convert.ToBase64String(privateKeyBytes);
-
-            // Save to file
-            // File.WriteAllText(identityPath, base64Key);
-            PlayerPrefs.SetString("It_Is_You", base64Key);
-            PlayerPrefs.Save();
+            throw new FileNotFoundException($"Identity file not found for user {userNumber}");
         }
 
-        return identity;
-    } 
+        string base64Key = File.ReadAllText(path);
+        byte[] privateKeyBytes = Convert.FromBase64String(base64Key);
+        return Ed25519Identity.FromPrivateKey(privateKeyBytes);
+    }
+
+    // internal Ed25519Identity LoadIdentity()
+    // {
+    //     string identityPath = Path.Combine(Application.persistentDataPath, "identity.key");
+
+    //     bool dataExist = PlayerPrefs.HasKey("It_Is_You");
+    //     // if (identity == null && File.Exists(identityPath))
+    //     if (identity == null && dataExist)
+    //     {
+    //         // Read the base64-encoded key from file
+    //         // string base64Key = File.ReadAllText(identityPath);
+    //         string base64Key = PlayerPrefs.GetString("It_Is_You");
+
+    //         // Convert it back to bytes
+    //         byte[] privateKeyBytes = Convert.FromBase64String(base64Key);
+
+    //         // Re-create identity
+    //         identity = Ed25519Identity.FromPrivateKey(privateKeyBytes);
+    //     }
+    //     else if (identity == null)
+    //     {
+    //         identity = GenerateOrGetDeviceKey();
+    //         // Get raw private key bytes (usually 32 bytes)
+    //         byte[] privateKeyBytes = identity.PrivateKey;
+
+    //         // Convert to base64 or hex for saving (here we use base64)
+    //         string base64Key = Convert.ToBase64String(privateKeyBytes);
+
+    //         // Save to file
+    //         // File.WriteAllText(identityPath, base64Key);
+    //         PlayerPrefs.SetString("It_Is_You", base64Key);
+    //         PlayerPrefs.Save();
+    //     }
+
+    //     return identity;
+    // } 
 
 }
 
@@ -105,29 +132,43 @@ public class IIClientWrapper
     public HttpAgent DelegateAgent { get; private set; }
     public Principal IICanisterPrincipal { get; private set; }
     public Principal LedgerCanisterPrincipal { get; private set; }
+
     public InternetIdentityApiClient IIClient { get; set; }
     public NNSLedgerApiClient ledgerClient { get; set; }
 
-    private SetupData data = new SetupData();
+    public string hostAddress { get; private set; }
+
+    internal SetupData data = new SetupData();
     private HttpAgent Agent { get; set; }
 
     public IIClientWrapper(string iiCanisterId = "qhbym-qaaaa-aaaaa-aaafq-cai", string ledgerCanisterId = "ryjl3-tyaaa-aaaaa-aaaba-cai")
     {
         this.IICanisterPrincipal = Principal.FromText(iiCanisterId);
         this.LedgerCanisterPrincipal = Principal.FromText(ledgerCanisterId);
-        this.Agent = SetupAgent(data.FrontendHostname);
+
+        this.hostAddress = data.FrontendHostname;
+
+        // Temporary agent for registration
+        Ed25519Identity tempIdentity = data.GenerateOrGetDeviceKey();
+        this.Agent = new HttpAgent(tempIdentity, new Uri(this.hostAddress));
         this.IIClient = new InternetIdentityApiClient(Agent, IICanisterPrincipal, new CandidConverter());
         
     }
 
-    public HttpAgent SetupAgent(string hostAddress)
+    // public HttpAgent SetupAgent(string hostAddress)
+    // {
+    //     // this.SessionKey = Ed25519Identity.Generate(); // Or load from existing PEM
+    //     // this.PubKey = [.. SessionKey.GetPublicKey().ToDerEncoding()];
+    //     return new HttpAgent(data.LoadIdentity(), new Uri(hostAddress));
+    // }
+
+     public void SetupAgentWithIdentity(Ed25519Identity identity)
     {
-        // this.SessionKey = Ed25519Identity.Generate(); // Or load from existing PEM
-        // this.PubKey = [.. SessionKey.GetPublicKey().ToDerEncoding()];
-        return new HttpAgent(data.LoadIdentity(), new Uri(hostAddress));
+        this.Agent = new HttpAgent(identity, new Uri(this.hostAddress));
+        this.IIClient = new InternetIdentityApiClient(this.Agent, this.IICanisterPrincipal, new CandidConverter());
     }
 
-    private async Task<IIUser> RegisterAsync()
+    private async Task<RegisterResponse.RegisteredInfo> RegisterAsync()
     {
         Challenge challenge = await IIClient.CreateChallenge();
         // Console.WriteLine("Challenge Key: " + challenge.ChallengeKey);
@@ -138,35 +179,54 @@ public class IIClientWrapper
             Key = challenge.ChallengeKey,
             Chars = "a" // Use dummy value in dev
         };
-        RegisterResponse response = await IIClient.Register(data.DeviceData, captchaResult, OptionalValue<Principal>.NoValue());
-        var info = response.AsRegistered();
-        return new IIUser(info.UserNumber);
+        RegisterResponse response = await IIClient.Register(createDeviceData(), captchaResult, OptionalValue<Principal>.NoValue());
+        
+        return response.AsRegistered();
     }
 
-    public IEnumerator RegisterCoroutine(Action<IIUser> onComplete, Action<Exception> onError)
+    private DeviceData createDeviceData()
     {
-        Task<IIUser> task = RegisterAsync();
+        DeviceData deviceData = new DeviceData
+        {
+            Pubkey = data.GenerateOrGetDeviceKey().PublicKey.ToDerEncoding().ToList(),
+            Alias = $"My Device {DateTime.Now:yyyy-MM-dd HH:mm:ss}",
+            CredentialId = null,
+            Purpose = Purpose.Authentication,
+            KeyType = KeyType.SeedPhrase,
+            Protection = DeviceProtection.Unprotected
+        };
+
+        // this.deviceData = deviceData;
+        return deviceData;
+    }
+
+    public IEnumerator RegisterCoroutine(Action<RegisterResponse.RegisteredInfo> onComplete, Action<Exception> onError)
+    {
+        Task<RegisterResponse.RegisteredInfo> task = RegisterAsync();
         while (!task.IsCompleted) yield return null;
 
         if (task.Exception != null)
             onError?.Invoke(task.Exception.InnerException ?? task.Exception);
         else
+        {
+            Ed25519Identity identity = data.GenerateOrGetDeviceKey();
+            data.SaveIdentity(task.Result.UserNumber, identity.PrivateKey);
             onComplete?.Invoke(task.Result);
+        }
     }
 
     public async Task LoginAsync(IIUser user)
     {
         Ed25519Identity sessionKey = Ed25519Identity.Generate();
-        List<byte> pubKey = sessionKey.PublicKey.ToDerEncoding().ToList();
+        List<byte> sessionPubKey = sessionKey.PublicKey.ToDerEncoding().ToList();
 
         (List<byte> userKey, ulong timestamp) prepareDelegationResp = await IIClient.PrepareDelegation(
-            user.UserNumber, data.FrontendHostname, pubKey, OptionalValue<ulong>.NoValue());
+            user.UserNumber, data.FrontendHostname, sessionPubKey, OptionalValue<ulong>.NoValue());
 
         var userKey = prepareDelegationResp.Item1;
         var timestamp = prepareDelegationResp.Item2;
 
-        GetDelegationResponse getDelegationResp = await IIClient.GetDelegation(
-            user.UserNumber, data.FrontendHostname, pubKey, timestamp);
+        GetDelegationResponse getDelegationResp = await IIClient.GetDelegation(user.UserNumber, data.FrontendHostname, sessionPubKey, timestamp);
 
         SubjectPublicKeyInfo pubKeyInfo = new SubjectPublicKeyInfo(AlgorithmIdentifier.Ed25519(), userKey.ToArray());
         ICTimestamp expiration = new ICTimestamp(UnboundedUInt.FromUInt64(timestamp));
@@ -180,7 +240,7 @@ public class IIClientWrapper
         );
 
         // Use delegation to create DelegationIdentity
-        DelegationIdentity delegateIdentity = new DelegationIdentity(data.LoadIdentity(), chain);
+        DelegationIdentity delegateIdentity = new DelegationIdentity(data.LoadIdentity(user.UserNumber), chain);
         DelegateAgent = new HttpAgent(delegateIdentity.Identity, new Uri(data.FrontendHostname));
     }
 

@@ -65,7 +65,7 @@ public class IIClientWrapper
 
         // Temporary agent for registration
         Ed25519Identity tempIdentity = data.GenerateOrGetDeviceKey();
-        ByteArrayToStringConversion idkey = new ByteArrayToStringConversion(tempIdentity.GetPublicKey().PublicKey);
+        // ByteArrayToStringConversion idkey = new ByteArrayToStringConversion(tempIdentity.GetPublicKey().PublicKey);
         // Console.WriteLine("TempKey: " + idkey.ToString());
         this.Agent = new HttpAgent(tempIdentity, new Uri(this.hostAddress));
         this.IIClient = new InternetIdentityApiClient(Agent, CanisterPrincipal, new CandidConverter());
@@ -116,7 +116,7 @@ public class IIClientWrapper
 
         // Save identity to disk using user number
         Ed25519Identity identity = data.GenerateOrGetDeviceKey();
-        ByteArrayToStringConversion idkey = new ByteArrayToStringConversion(identity.GetPublicKey().PublicKey);
+        // ByteArrayToStringConversion idkey = new ByteArrayToStringConversion(identity.GetPublicKey().PublicKey);
         // Console.WriteLine("idKey: " + idkey.ToString());
         data.SaveIdentity(userNumber, identity.PrivateKey);
         return new IIUser(userNumber);

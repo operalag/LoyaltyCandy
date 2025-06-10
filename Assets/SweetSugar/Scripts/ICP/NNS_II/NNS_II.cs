@@ -8,6 +8,7 @@ using System.Collections;
 using LoyaltyCandy.NNSLedger.Models;
 using System.Threading.Tasks;
 using LoyaltyCandy;
+using EdjCase.ICP.Agent.Identities;
 
 
 public class NNS_II : MonoBehaviour
@@ -22,8 +23,8 @@ public class NNS_II : MonoBehaviour
     void Start()
     {
         iiClient = new IIClientWrapper();
-        IIUser user = new IIUser((ulong)userID);
-        LoginUser(user);
+        // IIUser user = new IIUser((ulong)userID);
+        LoginUser((ulong)userID);
     }
 
     public void RegisterUser()
@@ -35,7 +36,7 @@ public class NNS_II : MonoBehaviour
             onComplete: (user) =>
             {
                 Debug.Log($"Registered user: {user.UserNumber} registered");
-                LoginUser(user);
+                LoginUser(user.UserNumber);
                 registerButton.enabled = false;
 
             },
@@ -44,10 +45,14 @@ public class NNS_II : MonoBehaviour
 
     }
 
-    public void LoginUser(IIUser user)
+    public void LoginUser(ulong userNumber)
     {
         //logging In
+        IIUser user = new IIUser(userNumber);
         Debug.Log($"Logging in ... ");
+        Ed25519Identity identity = iiClient.data.LoadIdentity(user.UserNumber);
+        iiClient.SetupAgentWithIdentity(identity);
+        
         StartCoroutine(iiClient.LoginCoroutine(
             user,
             onComplete: () =>
