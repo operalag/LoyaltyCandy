@@ -112,8 +112,7 @@ namespace LoyaltyCandy {
 
         internal void Connect(IAgent agent)
         {
-            Principal climateWalletPrincipal = Principal.FromText("uxrrr-q7777-77774-qaaaq-cai");
-            climateClient = new ClimateWalletApiClient(agent, climateWalletPrincipal);
+            climateClient = new ClimateWalletApiClient(agent, Config.CanisterPrincipal);
             if (OnICPClientReady != null) OnICPClientReady();
             
             StartCoroutine(PeriodicNetworkStatusCheck());
