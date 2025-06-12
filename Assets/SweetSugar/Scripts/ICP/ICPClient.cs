@@ -94,7 +94,6 @@ namespace LoyaltyCandy {
                 // Save updated online value
                 SetLastKnownBalance(gameBalance);
 
-                
                 // Avoid checking again right after applying offline gems
                 if (!appliedOfflineGem)
                 {
@@ -109,67 +108,95 @@ namespace LoyaltyCandy {
             yield return null;
         }
 
-
         internal void Connect(IAgent agent)
         {
             climateClient = new ClimateWalletApiClient(agent, Config.CanisterPrincipal);
+           
             if (OnICPClientReady != null) OnICPClientReady();
-            
+            // StartCoroutine(WriteCoroutine(false, 70)); //just for testing
             StartCoroutine(PeriodicNetworkStatusCheck());
         }
-
-        public void ReadScore() {
-            StartCoroutine(ExecuteRead());
-        }
-
-        private IEnumerator ExecuteRead()
-        {
-            Task<uint> task = climateClient.Read();
         
-            
-            while (!task.IsCompleted)
+        public IEnumerator ReadCoroutine()
+        {
+            Task<OptionalValue<GameData>> task = ReadingGameDataAsync();
+            while (!task.IsCompleted) yield return null;
+            GameData gameData;
+            try
             {
-                yield return new WaitForEndOfFrame();
+                gameData = task.Result.GetValueOrThrow();
+            }
+            catch (Exception ex)
+            {
+                Debug.Log($"No data: {ex}");
+                gameData = new GameData(); //if you data is found create new instance
             }
 
             if (OnRead != null)
             {
                 OnRead(
                     task.IsCompletedSuccessfully,
+                    task.IsCompletedSuccessfully ? gameData : null,
+                    !task.IsCompletedSuccessfully ? task.Exception.Message : null);
+            }
+        }
+
+        public IEnumerator WriteCoroutine(bool isMale, uint coins)
+        {
+            double coinsDouble = (double)coins;
+            Task<GameData> task = WritingGameDataAsync(isMale, coinsDouble);
+          
+            while (!task.IsCompleted) yield return null;
+            if (OnSet != null)
+            {
+                OnSet(
+                    task.IsCompletedSuccessfully,
                     task.IsCompletedSuccessfully ? task.Result : null,
                     !task.IsCompletedSuccessfully ? task.Exception.Message : null);
             }
-
             yield return null;
         }
 
+        private async Task<OptionalValue<GameData>> ReadingGameDataAsync()
+        {
+            try
+            {
+                (OptionalValue<GameData> ReturnArg0, string ReturnArg1) tupleResult = await climateClient.ReadGameData();
+                OptionalValue<GameData> result = tupleResult.ReturnArg0;
+                Debug.Log($"Gems Reading: {result.GetValueOrThrow().Gem}");
+                return result;
+
+            }
+            catch (Exception ex)
+            {
+                Debug.Log($"No data: {ex}" );
+                return null;
+            }
+        }
+
+        private async Task<GameData> WritingGameDataAsync(bool isMale, double coins)
+        {
+            Debug.Log($"Gems writing: {coins}");
+            (GameData ReturnArg0, string ReturnArg1) tupleResult = await climateClient.WriteGameData(isMale, coins);
+            GameData result = tupleResult.ReturnArg0;
+            return result;
+        }
+
+        public void ReadScore()
+        {
+            StartCoroutine(ReadCoroutine());
+        }
+        
         public void SaveCoins(int coins)
         {
             gameBalance = coins;
-            StartCoroutine(ExecuteSave((uint) coins));
-        }
-
-        private IEnumerator ExecuteSave(uint coins)
-        {
-            Task<uint> task = climateClient.Set(coins);
-            
-            while (!task.IsCompleted) {
-                yield return new WaitForEndOfFrame();
-            }
-
-            if (OnSet != null) {
-                OnSet(
-                    task.IsCompletedSuccessfully, 
-                    task.IsCompletedSuccessfully ? task.Result : null, 
-                    !task.IsCompletedSuccessfully ? task.Exception.Message : null);
-            }
-
-            yield return null;
+            StartCoroutine(WriteCoroutine(false, (uint)coins));
         }
 
         internal void CheckCoinBalance(int numCoins)
         {
-            if (!checking) {
+            if (!checking)
+            {
                 gameBalance = numCoins;
                 checking = true;
                 OnRead += CompareBalance;
@@ -181,23 +208,30 @@ namespace LoyaltyCandy {
         {
             OnRead -= CompareBalance;
 
-            if (success) {
-                uint icpValue = (uint) result;
-                int diff = (Mathf.Sign(icpValue) > 0 ? (int) icpValue : gameBalance) - gameBalance;
-               // int diff = (int)icpValue - gameBalance;
-               // Debug.Log("Balance check complete " + diff);
+            if (success)
+            {
+                GameData gameData = (GameData) result;
+                
+
+                int gemValue = (int)gameData.Gem;
+                int icpGem = Mathf.Sign(gemValue) > 0 ? (int)gemValue : gameBalance;
+                int diff = icpGem - gameBalance;
+                // int diff = (int)icpValue - gameBalance;
+                // Debug.Log("Balance check complete " + diff);
 
                 //Save last known online balance
-               SetLastKnownBalance((int)icpValue);
-                
-            } else {
+                SetLastKnownBalance(diff);
+
+            }
+            else
+            {
                 Debug.LogError("Error geting balance: " + message);
             }
 
             checking = false;
         }
 
-        private int GetLastKnownGemBalance() 
+        private int GetLastKnownGemBalance()
         {
             return PlayerPrefs.GetInt("LastKnownOnlineGemBalance", gameBalance); // fallback to local gameBalance
         }

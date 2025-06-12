@@ -17,7 +17,7 @@ namespace LoyaltyCandy  {
         // [SerializeField]
         // private TMP_Text greetingLabel;
         // [SerializeField]
-        // private ICPCanisterConfig testConfig;
+
         [SerializeField]
         private ICPClient icpClient;
         [SerializeField]
@@ -40,9 +40,6 @@ namespace LoyaltyCandy  {
         // Start is called before the first frame update
         void Start()
         {
-            // ConnectTest();
-            // ConnectClient();
-            // SetupCoins();
             icpClient.OnICPClientReady += SetupCoins;
         }
 
@@ -57,14 +54,8 @@ namespace LoyaltyCandy  {
         {
             try
             {
-                // Uri network = new Uri(icpClient.Config.NetworkURL);
-                // HttpAgent agent = new HttpAgent(null, network);
                 icpClient.Connect(delegateAgent);
             }
-            // catch (UriFormatException e)
-            // {
-            //     Debug.LogError("Incorrect network url: " + testConfig.NetworkURL);
-            // }
             catch (Exception e)
             {
                 Debug.LogError("Error setting up ICP client." + e.Message);

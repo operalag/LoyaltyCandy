@@ -53,11 +53,11 @@ namespace LoyaltyCandy.ClimateWallet
 			return reply.ToObjects<uint>(this.Converter);
 		}
 
-		public async Task<OptionalValue<Models.GameData>> ReadGameData()
+		public async Task<(OptionalValue<Models.GameData> ReturnArg0, string ReturnArg1)> ReadGameData()
 		{
 			CandidArg arg = CandidArg.FromCandid();
 			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "readGameData", arg);
-			return reply.ToObjects<OptionalValue<Models.GameData>>(this.Converter);
+			return reply.ToObjects<OptionalValue<Models.GameData>, string>(this.Converter);
 		}
 
 		public async Task<uint> Set(uint value)
@@ -67,10 +67,11 @@ namespace LoyaltyCandy.ClimateWallet
 			return reply.ToObjects<uint>(this.Converter);
 		}
 
-		public async Task WriteGameData(bool isMale, double gem)
+		public async Task<(Models.GameData ReturnArg0, string ReturnArg1)> WriteGameData(bool isMale, double gem)
 		{
 			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(isMale, this.Converter), CandidTypedValue.FromObject(gem, this.Converter));
-			await this.Agent.CallAsync(this.CanisterId, "writeGameData", arg);
+			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "writeGameData", arg);
+			return reply.ToObjects<Models.GameData, string>(this.Converter);
 		}
 	}
 }

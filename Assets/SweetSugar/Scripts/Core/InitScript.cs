@@ -12,7 +12,9 @@
 
 using System;
 using System.Collections;
+using EdjCase.ICP.Candid.Models;
 using LoyaltyCandy;
+using LoyaltyCandy.ClimateWallet.Models;
 using SweetSugar.Scripts.AdsEvents.GoogleRewardedAds;
 using SweetSugar.Scripts.GUI;
 using SweetSugar.Scripts.GUI.BonusSpin;
@@ -161,17 +163,49 @@ namespace SweetSugar.Scripts.Core
             InitComponents();
         }
 
+        // private void UpdateUI(bool success, object result, string message)
+        // {
+        //     // Gems are set via the Counter_.cs script. Not ideal but we will work with it for now
+        //     // The counter script constantly updates the text based on a Timer
+        //     // and reads from the PlayerPrefs value
+
+        //     if (success && int.TryParse(result.ToString(), out Gems))
+        //     {
+        //         SaveGemsToPrefs(Gems);
+        //     }
+        //     else
+        //     {
+        //         if (!success)
+        //         {
+        //             Debug.LogError(message);
+        //         }
+        //         else
+        //         {
+        //             Debug.LogError("Error converting result to int " + result);
+        //         }
+        //     }
+        // }
+        
         private void UpdateUI(bool success, object result, string message)
         {
             // Gems are set via the Counter_.cs script. Not ideal but we will work with it for now
             // The counter script constantly updates the text based on a Timer
             // and reads from the PlayerPrefs value
-            if (success && int.TryParse(result.ToString(), out Gems)) {
+
+            GameData gameData = (GameData) result;
+            
+            if (success && int.TryParse(gameData.Gem.ToString(), out Gems))
+            {
                 SaveGemsToPrefs(Gems);
-            } else {
-                if (!success) {
+            }
+            else
+            {
+                if (!success)
+                {
                     Debug.LogError(message);
-                } else {
+                }
+                else
+                {
                     Debug.LogError("Error converting result to int " + result);
                 }
             }
@@ -188,10 +222,6 @@ namespace SweetSugar.Scripts.Core
         {
             return string.Format("Level.{0:000}.StarsCount", number);
         }
-
-
-
-
 
         public void ShowRate()
         {

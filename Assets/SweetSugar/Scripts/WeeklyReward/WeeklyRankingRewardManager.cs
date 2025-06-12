@@ -58,6 +58,7 @@ public class WeeklyRankingRewardManager : MonoBehaviour
         icpClient.OnRankingReceived += OnFullRankingReceived;
         icpClient.GetCurrentRank(); // Get actual rank
     }
+    
     private void OnRankUpdated(bool success, object result, string message)
     {
         if (!success)
@@ -100,8 +101,6 @@ public class WeeklyRankingRewardManager : MonoBehaviour
     }
 }
 
-
-    
 
     private void TryDeductWeeklyPayout()
     {

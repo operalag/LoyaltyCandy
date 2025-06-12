@@ -67,11 +67,11 @@ namespace LoyaltyCandy.ClimateWallet
 			return reply.ToObjects<uint>(this.Converter);
 		}
 
-		public async Task<string> WriteGameData(bool isMale, double gem)
+		public async Task<(Models.GameData ReturnArg0, string ReturnArg1)> WriteGameData(bool isMale, double gem)
 		{
 			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(isMale, this.Converter), CandidTypedValue.FromObject(gem, this.Converter));
 			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "writeGameData", arg);
-			return reply.ToObjects<string>(this.Converter);
+			return reply.ToObjects<Models.GameData, string>(this.Converter);
 		}
 	}
 }
