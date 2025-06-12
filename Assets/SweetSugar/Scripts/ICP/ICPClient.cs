@@ -113,7 +113,7 @@ namespace LoyaltyCandy {
             climateClient = new ClimateWalletApiClient(agent, Config.CanisterPrincipal);
            
             if (OnICPClientReady != null) OnICPClientReady();
-            // StartCoroutine(WriteCoroutine(false, 70)); //just for testing
+            // StartCoroutine(WriteCoroutine(false, 200)); //just for testing
             StartCoroutine(PeriodicNetworkStatusCheck());
         }
         
