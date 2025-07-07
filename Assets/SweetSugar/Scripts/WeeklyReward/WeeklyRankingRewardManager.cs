@@ -12,13 +12,13 @@ public class WeeklyRankingRewardManager : MonoBehaviour
     private ICPClient icpClient;
     private PRank currentRank;
 
-    private const string PoolKey = "RewardTokenPool";
-    private const string LastRewardDateKey = "LastWeeklyRewardDate";
-    private const string PlayerClaimKey = "LastPlayerRewardDate";
-    private const int InitialRewardPool = 1000000;
+    private const string PoolKey = "RewardTokenPool"; // initial reward pool key if player player for first time
+    private const string LastRewardDateKey = "LastWeeklyRewardDate"; // stores the date when the entire reward pool was last deducted
+    private const string PlayerClaimKey = "LastPlayerRewardDate"; //stores the date when the current player last claimed their individual weekly reward.
+    private const int InitialRewardPool = 1000000; //initial total token that need to be distributed every weekly
 
     [Header("UI Elements")]
-    public GameObject rewardPanel;
+    public GameObject WeeklyrewardPanel;
     public TextMeshProUGUI rankText;
     public TextMeshProUGUI rewardText;
     public Button claimButton;
@@ -27,11 +27,11 @@ public class WeeklyRankingRewardManager : MonoBehaviour
 
     void Start()
     {
-        if (rewardPanel != null) rewardPanel.SetActive(false);
+        if (WeeklyrewardPanel != null) WeeklyrewardPanel.SetActive(false);
         if (claimButton != null) claimButton.onClick.AddListener(OnClaimClicked);
 
         SetupRewardPool();
-        // SetupClient();
+        SetupClient();
     }
 
     private void SetupRewardPool()
@@ -157,12 +157,12 @@ public class WeeklyRankingRewardManager : MonoBehaviour
     {
         if (rankText != null) rankText.text = $"#{rank}";
         if (rewardText != null) rewardText.text = $"{reward:N0} Tokens!";
-        rewardPanel?.SetActive(true);
+        WeeklyrewardPanel?.SetActive(true);
     }
 
     private void OnClaimClicked()
     {
-        rewardPanel?.SetActive(false);
+        WeeklyrewardPanel?.SetActive(false);
         Debug.Log("Reward panel closed by player.");
     }
 
@@ -189,7 +189,7 @@ public class WeeklyRankingRewardManager : MonoBehaviour
         // return bhutanTime.DayOfWeek == DayOfWeek.Sunday && bhutanTime.Hour >= 21;
 
         DateTime bhutanTime = DateTime.Now; //PC's local time
-        return bhutanTime.DayOfWeek == DayOfWeek.Saturday;
+        return bhutanTime.DayOfWeek == DayOfWeek.Monday;
     }
 
     private string GetBhutanDate()

@@ -28,6 +28,7 @@ public class NNS_II : MonoBehaviour
         LoginUser((ulong)userID);
     }
 
+    [Tooltip("Delete registered ID folder if you start new nns")]
     public void RegisterUser()
     {
         Debug.Log($"Registering new user ... ");
