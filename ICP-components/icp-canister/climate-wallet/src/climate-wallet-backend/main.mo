@@ -11,6 +11,13 @@ import Float "mo:base/Float";
 import Principal "mo:base/Principal";
 import HashMap "mo:base/HashMap";
 import Error "mo:base/Error";
+import Blob "mo:base/Blob";
+import Nat64 "mo:base/Nat64";
+import Text "mo:base/Text";
+import Nat8 "mo:base/Nat8";
+import Nat "mo:base/Nat";
+// import Ledger "canisters:ledger";
+
 
 actor LoyaltyGame {
 
@@ -26,6 +33,59 @@ actor LoyaltyGame {
   let EMPTY_RANK : PRank = {name=""; rank=0; score=0;};
   let INITIAL_CAPACITY = 16;
 
+
+
+type Account = {
+  owner : Principal;
+  subaccount : ?Blob;
+};
+
+let climaterCanister = Principal.fromText("uxrrr-q7777-77774-qaaaq-cai");  // caller or canister
+
+let myAccount : Account = {
+  owner      = climaterCanister;
+  subaccount = null;                            // default bucket
+};
+
+let ledger : actor {
+  icrc1_balance_of : shared Account -> async Nat;
+} = actor("ryjl3-tyaaa-aaaaa-aaaba-cai"); // ICP Ledger canister on local network
+
+
+// Balance in e8s (1 ICP = 100 000 000 e8s)
+public shared func getMyBalance() : async Nat {
+  let account : Account = {
+    owner      = Principal.fromActor(LoyaltyGame);
+    subaccount = null;
+  };
+
+  // This awaits the remote ledger call and returns the Nat result.
+  await ledger.icrc1_balance_of(account)
+};
+
+func repeatChar(c: Text, n: Nat) : Text {
+  var result = "";
+  var i = 0;
+  while (i < n) {
+    result := result # c;
+    i += 1;
+  };
+  result
+};
+
+public shared func getMyBalanceTxt() : async Text {
+  let e8s : Nat = await getMyBalance();
+
+  let whole      = e8s / 100_000_000;
+  let fractional = e8s % 100_000_000;
+
+  // pad the fractional part to 8 digits
+  let fracTxt  = Nat.toText(fractional);
+  let padded   = repeatChar("0", 8 - fracTxt.size()) # fracTxt;
+
+  Nat.toText(whole) # "." # padded # " ICP"
+};
+
   // ========== STORAGE ==========
   // Player data storage
   stable var playerDataStable : [(Principal, GameData)] = [];
@@ -36,6 +96,11 @@ actor LoyaltyGame {
   var currentPlayerRank : PlayerRank = {name = "No one"; var score = 0; var rank = -1;};
   var initRanks = false;
   var ranking = RBTree.RBTree <Int16, PlayerRank>(Int16.compare);
+
+  // ========== INITIALIZATION ==========
+  // public shared(msg) func init() : async () {
+  //   await printMyBalance();
+  // };
 
    // ========== SYSTEM METHODS ==========
   system func preupgrade() 
@@ -101,8 +166,6 @@ actor LoyaltyGame {
     
     return (data, principalText);
   };
-
-
 
   func fullRanking() : List.List<PlayerRank> 
   {

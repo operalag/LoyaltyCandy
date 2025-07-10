@@ -1,27 +1,46 @@
 {
-  "canisters": {
-    "climate-wallet-backend": {
-      "main": "src/climate-wallet-backend/main.mo",
-      "type": "motoko"
-    },
-    "internet_identity": {
-      "candid": "https://github.com/dfinity/internet-identity/releases/latest/download/internet_identity.did",
-      "frontend": {},
-      "remote": {
-        "id": {
-          "ic": "rdmx6-jaaaa-aaaaa-aaadq-cai"
-        }
-      },
-      "type": "custom",
-      "wasm": "https://github.com/dfinity/internet-identity/releases/latest/download/internet_identity_dev.wasm.gz"
-    }
-  },
+  "version": 1,
+  "output_env_file": ".env",
+
   "defaults": {
     "build": {
-      "args": "",
-      "packtool": ""
+      "packtool": "", 
+      "args": ""
     }
   },
-  "output_env_file": ".env",
-  "version": 1
+
+  "canisters": {
+    "climate-wallet-backend": {
+      "type": "motoko",
+      "main": "src/climate-wallet-backend/main.mo",
+      "dependencies": [
+        "internet_identity",
+        "ledger"
+      ]
+    },
+    "internet_identity": {
+      "type":   "custom",
+      "remote": { 
+        "id": { 
+          "ic": "rdmx6-jaaaa-aaaaa-aaadq-cai",
+          "local": "rdmx6-jaaaa-aaaaa-aaadq-cai"
+          } 
+        },
+      "candid": "https://github.com/dfinity/internet-identity/releases/latest/download/internet_identity.did",
+      "wasm":   ""             
+    },
+
+    "ledger": {
+      "type":   "custom",
+      "remote": {
+        "id": {
+          "ic":    "ryjl3-tyaaa-aaaaa-aaaba-cai",
+          "local": "ryjl3-tyaaa-aaaaa-aaaba-cai"
+        }
+      },
+
+      "candid": "https://raw.githubusercontent.com/dfinity/ledger-ref/main/ledger.did",
+      "wasm":   ""                  
+    }
+  }
 }

@@ -44,7 +44,6 @@ public class NNS_II : MonoBehaviour
             },
             onError: (err) => Debug.LogError("Registration failed: " + err.Message)
         ));
-
     }
 
     public void LoginUser(ulong userNumber)
