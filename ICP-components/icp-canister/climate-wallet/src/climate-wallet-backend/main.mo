@@ -12,11 +12,9 @@ import Principal "mo:base/Principal";
 import HashMap "mo:base/HashMap";
 import Error "mo:base/Error";
 import Blob "mo:base/Blob";
-import Nat64 "mo:base/Nat64";
 import Text "mo:base/Text";
-import Nat8 "mo:base/Nat8";
 import Nat "mo:base/Nat";
-// import Ledger "canisters:ledger";
+import Ledger "canister:ledger";
 
 
 actor LoyaltyGame {
@@ -33,8 +31,7 @@ actor LoyaltyGame {
   let EMPTY_RANK : PRank = {name=""; rank=0; score=0;};
   let INITIAL_CAPACITY = 16;
 
-
-
+  // ========== ACCOUNT AND LEDGER ==========
 type Account = {
   owner : Principal;
   subaccount : ?Blob;
@@ -50,7 +47,6 @@ let myAccount : Account = {
 let ledger : actor {
   icrc1_balance_of : shared Account -> async Nat;
 } = actor("ryjl3-tyaaa-aaaaa-aaaba-cai"); // ICP Ledger canister on local network
-
 
 // Balance in e8s (1 ICP = 100 000 000 e8s)
 public shared func getMyBalance() : async Nat {
@@ -83,8 +79,31 @@ public shared func getMyBalanceTxt() : async Text {
   let fracTxt  = Nat.toText(fractional);
   let padded   = repeatChar("0", 8 - fracTxt.size()) # fracTxt;
 
+  Debug.print(Nat.toText(whole) # "." # padded # " ICP" );
+
   Nat.toText(whole) # "." # padded # " ICP"
 };
+
+// let result = await Ledger.icrc1_transfer({
+//   to = {
+//     owner = userPrincipal;
+//     subaccount = null;
+//   };
+//   amount = 1_000_000; // 0.01 ICP
+//   fee = ?{ e8s = 10_000 }; // Ledger fee
+//   memo = null;
+//   created_at_time = null;
+//   from_subaccount = ?your_subaccount; // Optional, or null if default
+// });
+
+// await ledgerActor.icrc1_transfer({
+//   to: {
+//     owner: Principal.fromText("ryjl3-tyaaa-aaaaa-aaaba-cai"),
+//     subaccount: undefined, // optional
+//   },
+//   amount: { e8s: 100_000 },
+//   fee: { e8s: 10_000 },
+// });
 
   // ========== STORAGE ==========
   // Player data storage
@@ -97,12 +116,7 @@ public shared func getMyBalanceTxt() : async Text {
   var initRanks = false;
   var ranking = RBTree.RBTree <Int16, PlayerRank>(Int16.compare);
 
-  // ========== INITIALIZATION ==========
-  // public shared(msg) func init() : async () {
-  //   await printMyBalance();
-  // };
-
-   // ========== SYSTEM METHODS ==========
+  // ========== SYSTEM METHODS ==========
   system func preupgrade() 
   {
     playerDataStable := Iter.toArray(playerData.entries());

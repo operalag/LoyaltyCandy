@@ -8,7 +8,7 @@ using LoyaltyCandy.NNSDapp;
 IIClientWrapper iiClient = new IIClientWrapper();
 
 // IIUser user = iiClient.Register();
-IIUser user = new IIUser(10000L);
+IIUser user = new IIUser(10001L);
 
 // iiClient.Login(user);
 // var wrapper2 = new IIClientWrapper(); // Will re-generate new temp key for delegation
@@ -59,7 +59,7 @@ NNSDappApiClient dapp = new NNSDappApiClient(iiClient.DelegateAgent, NNS_DAPP);
 Principal climateWalletPrincipal = Principal.FromText("uxrrr-q7777-77774-qaaaq-cai");
 ClimateWalletApiClient climateClient = new ClimateWalletApiClient(iiClient.DelegateAgent, climateWalletPrincipal);
 
-var result = await climateClient.ReadGameData();  // Get current user's data
+// var result = await climateClient.ReadGameData();  // Get current user's data
 // var data = result.Item1;
 // var principalText = result.Item2;
 // Console.WriteLine($"Fetched data for principal {principalText} - IsMale: {data.GetValueOrThrow().IsMale}, Gem: {data.GetValueOrThrow().Gem}");
@@ -79,9 +79,11 @@ List<byte> climateAccountIdBytes = await ledgerClient.AccountIdentifier(climateA
 string climateAccountIdHex = BitConverter.ToString(climateAccountIdBytes.ToArray()).Replace("-", "").ToLowerInvariant();
 Console.WriteLine($"Climate Account‑ID hex: {climateAccountIdHex}");
 
-Tokens climateBalance = await ledgerClient.AccountBalance(new AccountBalanceArgs(climateAccountIdBytes));
-Console.WriteLine($"Climate Balance: {climateBalance.E8s / 100_000_000.0} ICP");
+// Tokens climateBalance = await ledgerClient.AccountBalance(new AccountBalanceArgs(climateAccountIdBytes));
+// Console.WriteLine($"Climate Balance: {climateBalance.E8s / 100_000_000.0} ICP");
 
+var balTxt = climateClient.GetMyBalanceTxt();
+Console.WriteLine($"Climate Balance: {balTxt.Result}");
 
 // Principal richPrincipalId = Principal.FromText("dmvep-nicpy-ys25g-nqpqp-5szde-bwdop-a4bzm-cisrh-7us4z-u67eo-hqe");
 // List<byte> subAccount = AccountHelper.FromPrincipal(richPrincipalId); // the one with 2000 ICP
