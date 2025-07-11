@@ -74,6 +74,13 @@ namespace LoyaltyCandy.ClimateWallet
 			return reply.ToObjects<OptionalValue<Models.GameData>, string>(this.Converter);
 		}
 
+		public async Task<UnboundedUInt> SendIcp(Principal to, UnboundedUInt amountE8s)
+		{
+			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(to, this.Converter), CandidTypedValue.FromObject(amountE8s, this.Converter));
+			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "sendIcp", arg);
+			return reply.ToObjects<UnboundedUInt>(this.Converter);
+		}
+
 		public async Task<uint> Set(uint value)
 		{
 			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(value, this.Converter));

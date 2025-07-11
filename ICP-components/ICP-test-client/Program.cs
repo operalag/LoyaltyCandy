@@ -47,13 +47,12 @@ Console.WriteLine("User Account Identifier (hex): " + accountHex);
 // await tester.SetScoreAsync(323);
 // await tester.printRanking(1, 1);
 
-
 // Step 8: Use delegated identity to call NNS canisters
 Principal ledgerCanisterId = Principal.FromText("ryjl3-tyaaa-aaaaa-aaaba-cai");
 NNSLedgerApiClient ledgerClient = new NNSLedgerApiClient(iiClient.DelegateAgent, ledgerCanisterId);
 
-Principal NNS_DAPP = Principal.FromText("qsgjb-riaaa-aaaaa-aaaga-cai");
-NNSDappApiClient dapp = new NNSDappApiClient(iiClient.DelegateAgent, NNS_DAPP);
+var updatedBalance = await ledgerClient.AccountBalance(new AccountBalanceArgs(userAccountIdentifier));
+Console.WriteLine($"User Updated Balance: {updatedBalance.E8s / 100_000_000} ICP");
 
 //login to custom canister
 Principal climateWalletPrincipal = Principal.FromText("uxrrr-q7777-77774-qaaaq-cai");
@@ -78,80 +77,26 @@ Account climateAccount = new Account
 List<byte> climateAccountIdBytes = await ledgerClient.AccountIdentifier(climateAccount);
 string climateAccountIdHex = BitConverter.ToString(climateAccountIdBytes.ToArray()).Replace("-", "").ToLowerInvariant();
 Console.WriteLine($"Climate Account‑ID hex: {climateAccountIdHex}");
-
-// Tokens climateBalance = await ledgerClient.AccountBalance(new AccountBalanceArgs(climateAccountIdBytes));
-// Console.WriteLine($"Climate Balance: {climateBalance.E8s / 100_000_000.0} ICP");
-
 var balTxt = climateClient.GetMyBalanceTxt();
 Console.WriteLine($"Climate Balance: {balTxt.Result}");
 
-// Principal richPrincipalId = Principal.FromText("dmvep-nicpy-ys25g-nqpqp-5szde-bwdop-a4bzm-cisrh-7us4z-u67eo-hqe");
-// List<byte> subAccount = AccountHelper.FromPrincipal(richPrincipalId); // the one with 2000 ICP
-// Account.SubaccountInfo richSubAcc = new Account.SubaccountInfo(subAccount);
 
-// Account richAccount = new Account
-// {
-//     Owner      = richPrincipalId,
-//     Subaccount = richSubAcc                    // implicit OptionalValue wrap
-// };
+Principal receiver = Principal.FromText("jfusi-qgype-2zc3m-5h7ah-bz4f3-er4g5-koznh-57cic-a7hkp-ntylt-dqe");
 
-// List<byte> richAccountIdBytes = await ledgerClient.AccountIdentifier(richAccount);
-// string richAccountIdHex = BitConverter.ToString(richAccountIdBytes.ToArray()).Replace("-", "").ToLowerInvariant();
-// Console.WriteLine($"Rich Account‑ID hex: {richAccountIdHex}");
-// Tokens richbalance = await ledgerClient.AccountBalance(new AccountBalanceArgs(richAccountIdBytes));
-// Console.WriteLine($"Balance: {richbalance.E8s / 100_000_000.0} ICP");
+// var BlockIndex = await climateClient.SendIcp(receiver, 100_000_000_0); //sending token for canister
 
-// Principal recipientPrincipal = Principal.FromText("3fh5t-iysez-llvtg-r4s3w-hbjd2-acamn-tzbxi-clgwr-nosb3-unxy6-5ae");
-// List<byte> receiptAccountId = AccountHelper.FromPrincipal(recipientPrincipal); //recipient account‑identifier
-// Account.SubaccountInfo receiptSubAcc = new Account.SubaccountInfo(receiptAccountId);
+// List<byte> receiverSubAccount = AccountHelper.FromPrincipal(receiver); // the one with 2000 ICP
+// Account.SubaccountInfo richSubAcc = new Account.SubaccountInfo(receiverSubAccount);
 
-// Account receiptAccount = new Account
-// {
-//     Owner = recipientPrincipal,
-//     Subaccount = receiptSubAcc              // implicit OptionalValue wrap
-// };
+Account receiverAccount = new Account
+{
+    Owner      = receiver,
+    Subaccount = null                    // implicit OptionalValue wrap
+};
 
-// List<byte> receiptAccountIdByte = await ledgerClient.AccountIdentifier(receiptAccount);
-// string receiptAccountIdHex = BitConverter.ToString(receiptAccountIdByte.ToArray()).Replace("-", "").ToLowerInvariant();
-// Console.WriteLine("Receipt User Account Identifier (hex): " + receiptAccountIdHex);
-// Tokens receiptBalance = await ledgerClient.AccountBalance(new AccountBalanceArgs(receiptAccountIdByte));
-// Console.WriteLine($"Balance: {receiptBalance.E8s / 100_000_000.0} ICP");
+List<byte> receiverAccountIdBytes = await ledgerClient.AccountIdentifier(receiverAccount);
+string receiverAccountIdHex = BitConverter.ToString(receiverAccountIdBytes.ToArray()).Replace("-", "").ToLowerInvariant();
+Console.WriteLine($"Receiver Account‑ID hex: {receiverAccountIdHex}");
+Tokens receiverBalance = await ledgerClient.AccountBalance(new AccountBalanceArgs(receiverAccountIdBytes));
+Console.WriteLine($"Receiver Balance: {receiverBalance.E8s / 100_000_000} ICP");
 
-// TransferArgs tx = new TransferArgs
-// {
-//     Fee = new Tokens { E8s = 10_000UL },
-//     Amount = new Tokens { E8s = 500_000_000UL },   // 5 ICP
-//     FromSubaccount = new TransferArgs.FromSubaccountInfo(richAccountIdBytes), // same 32 bytes
-//     To = receiptAccountIdByte
-// };
-
-// var result = await ledgerClient.Transfer(tx);
-// switch (result.Tag) //reesult
-// {
-//     case TransferResultTag.Ok:
-//         // Console.WriteLine($"Transfer included in block {result.Value}");
-//         ulong block = result.AsOk();
-//         Console.WriteLine($"Included in block {block}");
-//         break;
-
-//     case TransferResultTag.Err:
-//         // Console.WriteLine($" Transfer failed: {result.Value}"); // Tag = InsufficientFunds etc.
-//         TransferError err = result.AsErr();
-//         Console.WriteLine($"Failed: {err.Tag}");
-//         break;
-// }
-
-// var balance = await ledgerClient.AccountBalance(
-//     new AccountBalanceArgs(AccountHelper.FromPrincipal(
-//         userPrincipalID)));
-
-// Console.WriteLine($"Sub‑account balance: {balance.E8s/100_000_000.0} ICP");
-
-
-// List<byte> defaultId = AccountHelper.FromPrincipal(userPrincipalID); // default sub
-
-// var bal = await ledgerClient.AccountBalance(new AccountBalanceArgs(defaultId));
-// Console.WriteLine($"Default sub balance: {bal.E8s / 100_000_000.0} ICP");
-
-// var updatedBalance = await ledgerClient.AccountBalance(new AccountBalanceArgs(userAccountIdentifier));
-// Console.WriteLine($"User Updated Balance: {updatedBalance.E8s / 100_000_000} ICP");

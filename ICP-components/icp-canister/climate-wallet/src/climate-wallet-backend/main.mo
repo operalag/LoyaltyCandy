@@ -14,11 +14,12 @@ import Error "mo:base/Error";
 import Blob "mo:base/Blob";
 import Text "mo:base/Text";
 import Nat "mo:base/Nat";
-import Ledger "canister:ledger";
-
+import Nat64 "mo:base/Nat64";
+import Time "mo:base/Time";
+import Int "mo:base/Int";
+// import Ledger "canister:ledger";
 
 actor LoyaltyGame {
-
   // ========== TYPE ALIASES ==========
   type RankingResult = Types.RankingResult;
   type PlayerRank = Types.PlayerRank;
@@ -32,6 +33,9 @@ actor LoyaltyGame {
   let INITIAL_CAPACITY = 16;
 
   // ========== ACCOUNT AND LEDGER ==========
+
+  let timestamp = Nat64.fromNat(Int.abs(Time.now()));
+  
 type Account = {
   owner : Principal;
   subaccount : ?Blob;
@@ -84,27 +88,53 @@ public shared func getMyBalanceTxt() : async Text {
   Nat.toText(whole) # "." # padded # " ICP"
 };
 
-// let result = await Ledger.icrc1_transfer({
-//   to = {
-//     owner = userPrincipal;
-//     subaccount = null;
-//   };
-//   amount = 1_000_000; // 0.01 ICP
-//   fee = ?{ e8s = 10_000 }; // Ledger fee
-//   memo = null;
-//   created_at_time = null;
-//   from_subaccount = ?your_subaccount; // Optional, or null if default
-// });
+let ledgerTransfer : actor {
+  icrc1_transfer: shared {
+    from_subaccount: ?Blob;
+    to: {
+      owner: Principal;
+      subaccount: ?Blob;
+    };
+    amount: Nat;
+    fee: ?{ e8s: Nat };
+    memo: ?Blob;
+    created_at_time: ?{ timestamp_nanos: Nat64 };
+  } -> async {
+    #Ok : Nat;
+    #Err : {
+      #GenericError : { message : Text; error_code : Nat };
+      #TemporarilyUnavailable : {};
+      #BadBurn : { min_burn_amount : Nat };
+      #Duplicate : { duplicate_of : Nat };
+      #BadFee : { expected_fee : Nat };
+      #CreatedInFuture : { ledger_time : Nat64 };
+      #TooOld : {};
+      #InsufficientFunds : { balance : Nat };
+    };
+  };
+} = actor("ryjl3-tyaaa-aaaaa-aaaba-cai");  // Official ICP Ledger canister ID
 
-// await ledgerActor.icrc1_transfer({
-//   to: {
-//     owner: Principal.fromText("ryjl3-tyaaa-aaaaa-aaaba-cai"),
-//     subaccount: undefined, // optional
-//   },
-//   amount: { e8s: 100_000 },
-//   fee: { e8s: 10_000 },
-// });
+public shared func sendIcp(to: Principal, amountE8s: Nat) : async Nat {
+  let transferResult = await ledgerTransfer.icrc1_transfer({
+    from_subaccount = null;
+    to = {
+      owner = to;
+      subaccount = null;
+    };
+    amount = amountE8s;
+    fee = ?{ e8s = 10_000 };
+    memo = null;
+    created_at_time = ?{ timestamp_nanos = Nat64.fromNat(Int.abs(Time.now())) };
+  });
 
+  switch (transferResult) {
+    case (#Ok blockIndex) blockIndex;
+    case (#Err err) {
+      Debug.print("Transfer failed: " # debug_show(err));
+      throw Error.reject("ICP transfer failed.");
+    };
+  };
+};
   // ========== STORAGE ==========
   // Player data storage
   stable var playerDataStable : [(Principal, GameData)] = [];
