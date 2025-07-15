@@ -6,7 +6,7 @@ using LoyaltyCandy.ClimateWallet.Models;
 public class Tester
 {
     private ClimateWalletApiClient climateClient;
-    private PRank currentRank;
+    private GameDataShared currentRank;
 
     public Tester(ClimateWalletApiClient climateClient)
     {
@@ -15,14 +15,7 @@ public class Tester
 
     public async Task UpdateCurrentRank()
     {
-        currentRank = await climateClient.GetCurrentRanking();
-    }
-
-    public async Task SetScoreAsync(uint score)
-    {
-        Console.WriteLine(string.Format("Set score to {0} for rank {1}", score, currentRank.Rank));
-        await climateClient.Set(score);
-        await UpdateCurrentRank();
+        currentRank = await climateClient.GetGameData();
     }
 
     public async Task printRanking(uint before, uint after)
@@ -42,12 +35,33 @@ public class Tester
             PRank pRank = result.Ranking[i];
             if (pRank.Name.Equals(currentRank.Name))
             {
-                currentRank = pRank;
+                currentRank = gameDataShared(pRank);
             }
             Console.WriteLine(string.Format("#{0} {1} ({2})", pRank.Rank.ToString(), pRank.Name, pRank.Score.ToString()));
         }
     }
+
+    public GameDataShared gameDataShared(PRank pRank)
+    {
+        return new GameDataShared
+        {
+            Rank = pRank.Rank,
+            Name = pRank.Name,
+            Score = pRank.Score,
+            IsMale = pRank.IsMale
+        };
+    }
+    
+    public static string GenerateRandomName(int length)
+    {
+        Random random = new Random();
+        const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        return new string(Enumerable.Repeat(chars, length)
+            .Select(s => s[random.Next(s.Length)]).ToArray());
+    }
 }
+
+
 
 public class ByteListToStringConversion //only for testing, convertion of byte[] to string
 {
@@ -82,3 +96,4 @@ public class ByteArrayToStringConversion //only for testing, convertion of byte[
         return Convert.ToBase64String(data.ToArray());
     }
 }
+

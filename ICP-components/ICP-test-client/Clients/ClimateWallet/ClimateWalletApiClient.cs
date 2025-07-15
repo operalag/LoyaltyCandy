@@ -3,6 +3,7 @@ using EdjCase.ICP.Candid.Models;
 using EdjCase.ICP.Candid;
 using System.Threading.Tasks;
 using LoyaltyCandy.ClimateWallet;
+using System.Collections.Generic;
 
 namespace LoyaltyCandy.ClimateWallet
 {
@@ -19,31 +20,17 @@ namespace LoyaltyCandy.ClimateWallet
 			this.Converter = converter;
 		}
 
-		public async Task<uint> Bump()
+		public async Task<Models.GameDataShared> GetGameData()
 		{
 			CandidArg arg = CandidArg.FromCandid();
-			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "bump", arg);
-			return reply.ToObjects<uint>(this.Converter);
+			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "getGameData", arg);
+			return reply.ToObjects<Models.GameDataShared>(this.Converter);
 		}
 
-		public async Task<Models.PRank> GetCurrentRanking()
+		public async Task<string> GetMyCanisterBalanceTxt()
 		{
 			CandidArg arg = CandidArg.FromCandid();
-			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "getCurrentRanking", arg);
-			return reply.ToObjects<Models.PRank>(this.Converter);
-		}
-
-		public async Task<UnboundedUInt> GetMyBalance()
-		{
-			CandidArg arg = CandidArg.FromCandid();
-			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "getMyBalance", arg);
-			return reply.ToObjects<UnboundedUInt>(this.Converter);
-		}
-
-		public async Task<string> GetMyBalanceTxt()
-		{
-			CandidArg arg = CandidArg.FromCandid();
-			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "getMyBalanceTxt", arg);
+			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "getMyCanisterBalanceTxt", arg);
 			return reply.ToObjects<string>(this.Converter);
 		}
 
@@ -54,45 +41,29 @@ namespace LoyaltyCandy.ClimateWallet
 			return reply.ToObjects<Models.RankingResult>(this.Converter);
 		}
 
-		public async Task Inc()
+		public async Task<List<Models.GameDataWithPrincipal>> GetTopRankingWithPrincipal()
 		{
 			CandidArg arg = CandidArg.FromCandid();
-			await this.Agent.CallAsync(this.CanisterId, "inc", arg);
+			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "getTopRankingWithPrincipal", arg);
+			return reply.ToObjects<List<Models.GameDataWithPrincipal>>(this.Converter);
 		}
 
-		public async Task<uint> Read()
+		public async Task RegisterPlayer(string name, bool isMale)
 		{
-			CandidArg arg = CandidArg.FromCandid();
-			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "read", arg);
-			return reply.ToObjects<uint>(this.Converter);
+			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(name, this.Converter), CandidTypedValue.FromObject(isMale, this.Converter));
+			await this.Agent.CallAsync(this.CanisterId, "registerPlayer", arg);
 		}
 
-		public async Task<(OptionalValue<Models.GameData> ReturnArg0, string ReturnArg1)> ReadGameData()
+		public async Task RewardTop10(UnboundedUInt amountPerPlayerE8s)
 		{
-			CandidArg arg = CandidArg.FromCandid();
-			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "readGameData", arg);
-			return reply.ToObjects<OptionalValue<Models.GameData>, string>(this.Converter);
+			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(amountPerPlayerE8s, this.Converter));
+			await this.Agent.CallAsync(this.CanisterId, "rewardTop10", arg);
 		}
 
-		public async Task<UnboundedUInt> SendIcp(Principal to, UnboundedUInt amountE8s)
+		public async Task UpdatePlayerScore(uint newScore)
 		{
-			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(to, this.Converter), CandidTypedValue.FromObject(amountE8s, this.Converter));
-			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "sendIcp", arg);
-			return reply.ToObjects<UnboundedUInt>(this.Converter);
-		}
-
-		public async Task<uint> Set(uint value)
-		{
-			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(value, this.Converter));
-			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "set", arg);
-			return reply.ToObjects<uint>(this.Converter);
-		}
-
-		public async Task<(Models.GameData ReturnArg0, string ReturnArg1)> WriteGameData(bool isMale, double gem)
-		{
-			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(isMale, this.Converter), CandidTypedValue.FromObject(gem, this.Converter));
-			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "writeGameData", arg);
-			return reply.ToObjects<Models.GameData, string>(this.Converter);
+			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(newScore, this.Converter));
+			await this.Agent.CallAsync(this.CanisterId, "updatePlayerScore", arg);
 		}
 	}
 }

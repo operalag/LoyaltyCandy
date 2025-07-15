@@ -1,28 +1,27 @@
 using EdjCase.ICP.Candid.Mapping;
 using Score = System.UInt32;
 using Rank = System.Int16;
-using PlayerName = System.String;
 
 namespace LoyaltyCandy.ClimateWallet.Models
 {
-	public class PRank
+	public class GameDataShared
 	{
 		[CandidName("isMale")]
 		public bool IsMale { get; set; }
 
 		[CandidName("name")]
-		public PlayerName Name { get; set; }
+		public string Name { get; set; }
 
 		[CandidName("playerAddress")]
 		public string PlayerAddress { get; set; }
 
 		[CandidName("rank")]
-		public Rank Rank { get; set; }
+		public short Rank { get; set; }
 
 		[CandidName("score")]
-		public Score Score { get; set; }
+		public uint Score { get; set; }
 
-		public PRank(bool isMale, PlayerName name, string playerAddress, Rank rank, Score score)
+		public GameDataShared(bool isMale, string name, string playerAddress, short rank, uint score)
 		{
 			this.IsMale = isMale;
 			this.Name = name;
@@ -31,7 +30,7 @@ namespace LoyaltyCandy.ClimateWallet.Models
 			this.Score = score;
 		}
 
-		public PRank()
+		public GameDataShared()
 		{
 		}
 	}
