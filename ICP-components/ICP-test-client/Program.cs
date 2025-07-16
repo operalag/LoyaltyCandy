@@ -7,7 +7,7 @@ using EdjCase.ICP.Agent.Identities;
 IIClientWrapper iiClient = new IIClientWrapper();
 
 IIUser user = iiClient.Register();
-// IIUser user = new IIUser(10003L);
+// IIUser user = new IIUser(10000L);
 
 Ed25519Identity identity = iiClient.data.LoadIdentity(user.UserNumber);
 iiClient.SetupAgentWithIdentity(identity); // Use original registered key
@@ -35,7 +35,7 @@ Account climateAccount = new Account
 
 List<byte> climateAccountIdBytes = await ledgerClient.AccountIdentifier(climateAccount);
 string climateAccountIdHex = BitConverter.ToString(climateAccountIdBytes.ToArray()).Replace("-", "").ToLowerInvariant();
-Console.WriteLine($"Climate Account‑ID hex: {climateAccountIdHex}");
+Console.WriteLine($"Climate Account-ID hex: {climateAccountIdHex}");
 
 var balTxt = climateClient.GetMyCanisterBalanceTxt();
 Console.WriteLine($"Climate Balance: {balTxt.Result}");
@@ -62,5 +62,7 @@ Console.WriteLine($"user Account Address hex: {readResult.PlayerAddress}");
 Tester tester = new Tester(climateClient);
 await tester.UpdateCurrentRank();
 await tester.printRanking(10, 10);
+
+var sundayReward = climateClient.UpdateLastDistributionIfSunday();
 
 // var top10 = climateClient.RewardTop10(100_000_000_0); // Reward top 10 players with 1 ICP each

@@ -3,7 +3,6 @@ using EdjCase.ICP.Candid.Models;
 using EdjCase.ICP.Candid;
 using System.Threading.Tasks;
 using LoyaltyCandy.ClimateWallet;
-using System.Collections.Generic;
 
 namespace LoyaltyCandy.ClimateWallet
 {
@@ -41,13 +40,6 @@ namespace LoyaltyCandy.ClimateWallet
 			return reply.ToObjects<Models.RankingResult>(this.Converter);
 		}
 
-		public async Task<List<Models.GameDataWithPrincipal>> GetTopRankingWithPrincipal()
-		{
-			CandidArg arg = CandidArg.FromCandid();
-			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "getTopRankingWithPrincipal", arg);
-			return reply.ToObjects<List<Models.GameDataWithPrincipal>>(this.Converter);
-		}
-
 		public async Task RegisterPlayer(string name, bool isMale)
 		{
 			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(name, this.Converter), CandidTypedValue.FromObject(isMale, this.Converter));
@@ -58,6 +50,12 @@ namespace LoyaltyCandy.ClimateWallet
 		{
 			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(amountPerPlayerE8s, this.Converter));
 			await this.Agent.CallAsync(this.CanisterId, "rewardTop10", arg);
+		}
+
+		public async Task UpdateLastDistributionIfSunday()
+		{
+			CandidArg arg = CandidArg.FromCandid();
+			await this.Agent.CallAsync(this.CanisterId, "updateLastDistributionIfSunday", arg);
 		}
 
 		public async Task UpdatePlayerScore(uint newScore)
