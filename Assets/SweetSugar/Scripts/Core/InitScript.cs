@@ -192,9 +192,9 @@ namespace SweetSugar.Scripts.Core
             // The counter script constantly updates the text based on a Timer
             // and reads from the PlayerPrefs value
 
-            GameData gameData = (GameData) result;
+            GameDataShared gameData = (GameDataShared) result;
             
-            if (success && int.TryParse(gameData.Gem.ToString(), out Gems))
+            if (success && int.TryParse(gameData.Score.ToString(), out Gems))
             {
                 SaveGemsToPrefs(Gems);
             }

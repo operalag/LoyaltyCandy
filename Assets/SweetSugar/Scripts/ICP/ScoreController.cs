@@ -34,11 +34,11 @@ public class ScoreController : MonoBehaviour
     
     private void UpdateUI(bool success, object result, string message)
     {
-        GameData gameData = result as GameData;
+        GameDataShared gameDataShared = result as GameDataShared;
         setInput.enabled = true;
         setButton.enabled = true;
 
-        scoreLabel.text = success ? gameData.Gem.ToString() : message;
+        scoreLabel.text = success ? gameDataShared.Score.ToString() : message;
     }
 
     public void SaveScore()

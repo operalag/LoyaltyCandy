@@ -168,6 +168,32 @@ actor LoyaltyGame {
     )
   };
 
+  public shared (msg) func getCurrentRanking() : async Types.PRank {
+    let caller = msg.caller;
+
+    if (Principal.isAnonymous(caller)) {
+      throw Error.reject("Anonymous access not allowed.");
+    };
+
+    switch (playerData.get(caller)) {
+      case (?data) {
+        if (data.rank < 1) {
+          recalculateRanks(); // Refresh ranks if the player's rank hasn't been set
+        };
+        {
+          name = data.name;
+          isMale = data.isMale;
+          score = data.score;
+          rank = data.rank;
+          playerAddress = data.playerAddress;
+        };
+      };
+      case null {
+        throw Error.reject("Player not found. Please register first.");
+      };
+    };
+  };
+
   public shared func getRanking(before: Nat32, after: Nat32, rank: Int16) : async RankingResult {
     let allPlayers = Iter.toArray(playerData.vals());
     // Sort players by descending score
@@ -434,6 +460,10 @@ actor LoyaltyGame {
       case (?rank) return {name = rank.name; isMale = rank.isMale; rank = rank.rank; score = rank.score; playerAddress = rank.playerAddress};
       case (null) return EMPTY_RANK;
     };
+  };
+
+  public shared func ping() : async () {
+  // No-op: used to check canister availability
   };
 
   func min(a: Nat, b: Nat) : Nat = if (a < b) a else b;

@@ -61,8 +61,6 @@ public class Tester
     }
 }
 
-
-
 public class ByteListToStringConversion //only for testing, convertion of byte[] to string
 {
     private List<byte> data;
@@ -71,7 +69,6 @@ public class ByteListToStringConversion //only for testing, convertion of byte[]
     {
         this.data = inData;
     }
-
 
     public string GetString()
     {
