@@ -19,6 +19,12 @@ namespace LoyaltyCandy.ClimateWallet
 			this.Converter = converter;
 		}
 
+		public async Task CheckAndMaybeDistributeReward()
+		{
+			CandidArg arg = CandidArg.FromCandid();
+			await this.Agent.CallAsync(this.CanisterId, "checkAndMaybeDistributeReward", arg);
+		}
+
 		public async Task<Models.GameDataShared> GetGameData()
 		{
 			CandidArg arg = CandidArg.FromCandid();
@@ -44,18 +50,6 @@ namespace LoyaltyCandy.ClimateWallet
 		{
 			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(name, this.Converter), CandidTypedValue.FromObject(isMale, this.Converter));
 			await this.Agent.CallAsync(this.CanisterId, "registerPlayer", arg);
-		}
-
-		public async Task RewardTop10(UnboundedUInt amountPerPlayerE8s)
-		{
-			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(amountPerPlayerE8s, this.Converter));
-			await this.Agent.CallAsync(this.CanisterId, "rewardTop10", arg);
-		}
-
-		public async Task UpdateLastDistributionIfSunday()
-		{
-			CandidArg arg = CandidArg.FromCandid();
-			await this.Agent.CallAsync(this.CanisterId, "updateLastDistributionIfSunday", arg);
 		}
 
 		public async Task UpdatePlayerScore(uint newScore)

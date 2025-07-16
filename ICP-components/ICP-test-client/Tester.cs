@@ -13,9 +13,9 @@ public class Tester
         this.climateClient = climateClient;
     }
 
-    public async Task UpdateCurrentRank()
+    public void UpdateCurrentRank(GameDataShared gameDataShared)
     {
-        currentRank = await climateClient.GetGameData();
+        currentRank = gameDataShared;
     }
 
     public async Task printRanking(uint before, uint after)

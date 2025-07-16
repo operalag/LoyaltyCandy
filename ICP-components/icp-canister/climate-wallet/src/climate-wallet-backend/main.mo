@@ -19,16 +19,13 @@ import Time "mo:base/Time";
 import Int "mo:base/Int";
 import Nat8 "mo:base/Nat8";
 import Array "mo:base/Array";
-import Timer "mo:base/Timer";
-import Random "mo:base/Random";
+
 
 actor LoyaltyGame {
   //=========== DISTRUBUTION TIME ==========
-  stable var lastDistributionTime : Nat64 = 0;
-  stable var distributionInterval : Nat64 = 604_800_000_000_000; // 1 week in nanoseconds
-  stable var scheduledTimerId : ?Timer.TimerId = null;
+  stable var isWeeklyCompetitionRunning : Bool = false;
   stable var lastRewardedSundayId : Nat = 0;
-  stable var rewardAmount : Nat = 10_000_000_000; // Valid: 10 ICP in e8s
+  stable var rewardAmount : Nat = 1_000_000_000;  //// Reward top 10 players with 10 ICP each
 
   // ========== TYPE ALIASES ==========
   type GameData = Types.GameData;
@@ -47,7 +44,7 @@ actor LoyaltyGame {
   stable var playerDataStable : [(Principal, GameData)] = [];
   var playerData = HashMap.HashMap<Principal, GameData>(INITIAL_CAPACITY, Principal.equal, Principal.hash);
 
-      // ========== SYSTEM METHODS ==========
+  // ========== SYSTEM METHODS ==========
   system func preupgrade() {
     playerDataStable := Iter.toArray(playerData.entries());
   };
@@ -137,9 +134,12 @@ actor LoyaltyGame {
 
     let caller = msg.caller;
 
+    await checkAndMaybeDistributeReward(); // reward distribution call
+
     switch (playerData.get(caller)) {
-      case (?data) {
-        toGameDataShared(data)
+      case (?data) 
+      {
+        return toGameDataShared(data); // then return the data
       };
       case null { throw Error.reject("Player not found.");};
     }
@@ -210,60 +210,45 @@ actor LoyaltyGame {
   };
 
   //=========== DSTRUTUBION ON SUNDAY ============
-  func isSunday() : async Bool {
-    let now = Time.now();
-    let seconds = now / 1_000_000_000;
-    let dayOfWeek = (seconds / 86_400 + 3) % 7; // 0=Sunday
-    return dayOfWeek == 0; // 0 = Sunday
-  };
 
-  // Unique ID for each Sunday since Unix epoch
-  func getCurrentSundayId() : Nat {
+  // Determines which Sunday "this week" corresponds to
+  func getLatestSundayIdFromNow() : Nat {
     let now = Time.now();
     let secondsSinceEpoch = Int.abs(now) / 1_000_000_000;
     let daysSinceEpoch = secondsSinceEpoch / 86_400;
 
-    // Thursday (1970-01-01) adjustment
-    let sundayDayIndex = (daysSinceEpoch + 3) / 7;
-
-    // Explicit conversion
-    Int.abs(sundayDayIndex)
+    // Unix epoch (Jan 1, 1970) was a Thursday, so Sunday = -3 offset
+    let latestSundayDayIndex = (daysSinceEpoch - ((daysSinceEpoch + 3) % 7)) / 7;
+    return latestSundayDayIndex; // Always positive Nat
   };
 
-  // Your weekly reward logic in a normal async function
-  public shared func updateLastDistributionIfSunday() : async () {
-    try {
-      let isTodaySunday = await isSunday();
-      
-      if (not isTodaySunday) {
-        Debug.print("Today is not Sunday. No update done.");
-        return;
-      };
+  public shared func checkAndMaybeDistributeReward() : async () {
+    let sundayId = getLatestSundayIdFromNow();
 
-      let currentSundayId = getCurrentSundayId();
-      Debug.print("Current Sunday ID: " # Nat.toText(currentSundayId));
-      Debug.print("Last rewarded Sunday ID: " # Nat.toText(lastRewardedSundayId));
+    if (not isWeeklyCompetitionRunning) {
+      isWeeklyCompetitionRunning := true;
+      lastRewardedSundayId := sundayId;
+      Debug.print("Competition started on Sunday ID: " # Nat.toText(sundayId));
+      return;
+    }
+    else
+    {
+      if (sundayId > lastRewardedSundayId) {
+        Debug.print("Distributing reward for new week. Sunday ID: " # Nat.toText(sundayId));
 
-      if (lastRewardedSundayId < currentSundayId) {
-        lastRewardedSundayId := currentSundayId;
-        try {
-          await rewardTop10(rewardAmount);
-          Debug.print("Reward distribute ");
-        } catch (e) {
-          Debug.print("Failed to distribute rewards: " # Error.message(e));
-        };
+        await rewardTop10(rewardAmount); //rewaring top 10 player
 
-        Debug.print("Reward distributed for Sunday #" # Nat.toText(currentSundayId));
+        lastRewardedSundayId := sundayId;
+        Debug.print("Reward given and marked for Sunday ID: " # Nat.toText(sundayId));
       } else {
-        Debug.print("Reward already distributed for this Sunday.");
+        Debug.print("Reward already distributed for the latest Sunday or Wait till next sunda.");
       };
-    } catch (e) {
-      Debug.print("Timer error: " # Error.message(e));
     };
   };
 
+
   // ========== LEDGER INTERACTION ==========
-  public shared func rewardTop10(amountPerPlayerE8s: Nat) : async () {
+  func rewardTop10(amountPerPlayerE8s: Nat) : async () {
     let topPlayers = await getTopRankingWithPrincipal();
     for (player in topPlayers.vals()) {
       Debug.print("Sending to: " # player.data.name);
