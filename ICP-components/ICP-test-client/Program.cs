@@ -6,8 +6,8 @@ using EdjCase.ICP.Agent.Identities;
 
 IIClientWrapper iiClient = new IIClientWrapper();
 
-// IIUser user = iiClient.Register();
-IIUser user = new IIUser(10003L);
+IIUser user = iiClient.Register();
+// IIUser user = new IIUser(10003L);
 
 Ed25519Identity identity = iiClient.data.LoadIdentity(user.UserNumber);
 iiClient.SetupAgentWithIdentity(identity); // Use original registered key

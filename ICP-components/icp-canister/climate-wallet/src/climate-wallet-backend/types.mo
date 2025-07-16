@@ -4,30 +4,36 @@ import Int16 "mo:base/Int16";
 
 module {
 
-public type Rank = Int16;
-public type PlayerName = Text;
-public type Score = Nat32;
+    public type Rank = Int16;
+    public type PlayerName = Text;
+    public type Score = Nat32;
+    public type PlayerAddress = Text;
 
-public type PlayerRank = {
-    name: PlayerName;
-    var rank: Rank;
-    var score: Score;
-};
+    public type GameData = {
+        name: PlayerName;
+        isMale: Bool;
+        var rank: Rank;
+        var score: Score;
+        playerAddress : Text;
+    };
 
-public type PRank = {
-    name: PlayerName;
-    rank: Rank;
-    score: Score;
-};
+    public type GameDataShared = {
+    name: Text;
+    isMale: Bool;
+    score: Nat32;
+    rank: Int16;
+    playerAddress: Text;
+    };
 
-public type RankingResult = {
-    ranking: [PRank];
-};
+    public type PRank = {
+        name: PlayerName;
+        isMale: Bool;
+        rank: Rank;
+        score: Score;
+        playerAddress : Text;
+    };
 
-public type GameData = {
-    isMale : Bool;
-    gem : Float;
-  };
-
-
+    public type RankingResult = {
+        ranking: [PRank];
+    };
 }
