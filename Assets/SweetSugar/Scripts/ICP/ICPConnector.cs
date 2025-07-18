@@ -50,74 +50,16 @@ namespace LoyaltyCandy  {
             icpClient.OnICPClientReady -= SetupCoins;
         }
 
-        internal void ConnectClient(HttpAgent delegateAgent)
-        {
-            try
-            {
-                icpClient.Connect(delegateAgent);
-            }
-            catch (Exception e)
-            {
-                Debug.LogError("Error setting up ICP client." + e.Message);
-            }
-        }
-
-        // private void ConnectTest()
-        // {
-        //     try
-        //     {
-        //         Uri network = new Uri(testConfig.NetworkURL);
-        //         HttpAgent agent = new HttpAgent(null, network);
-        //         client = new HelloClientApiClient(agent, testConfig.CanisterPrincipal);
-        //     }
-        //     catch (UriFormatException e)
-        //     {
-        //         Debug.LogError("Incorrect network url: " + testConfig.NetworkURL);
-        //     }
-        //     catch (Exception e)
-        //     {
-        //         Debug.LogError("Error setting up ICP client." + e.Message);
-        //     }
-        // }
-
-        // public void GetGreeting(string message) {
-        //     StartCoroutine(ExecuteGreeting(message));
-        // }
-
-        // private IEnumerator ExecuteGreeting(string message)
-        // {
-        //     Task<string> task = client.Greet(message);
-            
-        //     while (!task.IsCompleted) {
-        //         yield return new WaitForEndOfFrame();
-        //     }
-
-        //     if (task.IsCompletedSuccessfully) {
-        //         if (greetingLabel != null) {
-        //             greetingLabel.text = task.Result;
-        //         } else {
-        //             Debug.Log(task.Result);
-        //         }
-        //     } else {
-        //         if (greetingLabel != null) {
-        //             greetingLabel.text = task.Exception.Message;
-        //         } else {
-        //             Debug.LogError(task.Exception.Message);
-        //         }
-        //     }
-        // }
     }
 
     [Serializable]
     public class ICPCanisterConfig {
-        // [SerializeField]
-        // private string networkUrl = "http://localhost:4943";
+
         [SerializeField]
-        private string canisterId = "bd3sg-teaaa-aaaaa-qaaba-cai";
+        private string canisterId = "";
 
         private Principal principal;
 
-        // public string NetworkURL {get { return networkUrl; } set {}}
         public Principal CanisterPrincipal {get { if (principal == null) principal = Principal.FromText(this.canisterId); return principal;} set {}}
 
     }

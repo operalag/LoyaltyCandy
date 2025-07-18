@@ -56,7 +56,7 @@ public class WeeklyRankingRewardManager : MonoBehaviour
 
         icpClient.OnRankUpdated += OnRankUpdated;
         icpClient.OnRankingReceived += OnFullRankingReceived;
-        icpClient.GetCurrentRank(); // Get actual rank
+        // icpClient.GetCurrentRank(); // get leaderboard ranking
     }
     
     private void OnRankUpdated(bool success, object result, string message)

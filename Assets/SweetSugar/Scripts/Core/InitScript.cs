@@ -193,22 +193,31 @@ namespace SweetSugar.Scripts.Core
             // and reads from the PlayerPrefs value
 
             GameDataShared gameData = (GameDataShared) result;
+
+            if (result == null)
+            {
+                return;
+            }
+
+            
+            Debug.Log($"success {success}, object {gameData.Score}, string {message}");
+            
             
             if (success && int.TryParse(gameData.Score.ToString(), out Gems))
-            {
-                SaveGemsToPrefs(Gems);
-            }
-            else
-            {
-                if (!success)
                 {
-                    Debug.LogError(message);
+                    SaveGemsToPrefs(Gems);
                 }
                 else
                 {
-                    Debug.LogError("Error converting result to int " + result);
+                    if (!success)
+                    {
+                        Debug.LogError(message);
+                    }
+                    else
+                    {
+                        Debug.LogError("Error converting result to int " + result);
+                    }
                 }
-            }
         }
 
         public void SaveLevelStarsCount(int level, int starsCount)

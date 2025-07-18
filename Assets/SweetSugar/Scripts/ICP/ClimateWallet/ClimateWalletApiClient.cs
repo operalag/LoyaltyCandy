@@ -59,10 +59,11 @@ namespace LoyaltyCandy.ClimateWallet
 			await this.Agent.CallAsync(this.CanisterId, "ping", arg);
 		}
 
-		public async Task RegisterPlayer(string name, bool isMale)
+		public async Task<Models.GameDataShared> RegisterPlayer(string name, bool isMale)
 		{
 			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(name, this.Converter), CandidTypedValue.FromObject(isMale, this.Converter));
-			await this.Agent.CallAsync(this.CanisterId, "registerPlayer", arg);
+			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "registerPlayer", arg);
+			return reply.ToObjects<Models.GameDataShared>(this.Converter);
 		}
 
 		public async Task UpdatePlayerScore(uint newScore)

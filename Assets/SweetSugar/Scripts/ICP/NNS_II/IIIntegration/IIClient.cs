@@ -78,7 +78,6 @@ public class IIClientWrapper
         Ed25519Identity tempIdentity = data.GenerateOrGetDeviceKey();
         this.Agent = new HttpAgent(tempIdentity, new Uri(this.hostAddress));
         this.IIClient = new InternetIdentityApiClient(Agent, IICanisterPrincipal, new CandidConverter());
-        
     }
 
     public void SetupAgentWithIdentity(Ed25519Identity identity)

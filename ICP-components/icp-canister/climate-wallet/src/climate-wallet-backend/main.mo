@@ -61,33 +61,34 @@ actor LoyaltyGame {
 
   // ========== PLAYER MANAGEMENT ==========
   //remainder to make if possible if the player is already register reject the resgistration
-  public shared(msg) func registerPlayer(name: Text, isMale: Bool) : async () {
-    if (Principal.isAnonymous(msg.caller)) {
-      throw Error.reject("Anonymous users are not allowed to register.");
-    };
-    let user = msg.caller;
+  public shared(msg) func registerPlayer(name: Text, isMale: Bool) : async GameDataShared {
+  if (Principal.isAnonymous(msg.caller)) {
+    throw Error.reject("Anonymous users are not allowed to register.");
+  };
+  let user = msg.caller;
 
-    switch (playerData.get(user)) {
-      case (?_) {
-        // Player already registered
-        Debug.print("Player already exist");
-        return;
-      };
-      case null {
-        let userAddress = await getAccountAddress(user);
-        // Player is not registered
-        let newPlayer : GameData = {
+  switch (playerData.get(user)) {
+    case (?existing) {
+      // Player already registered — return their current shared data
+      Debug.print("Player already exists");
+      return toGameDataShared(existing);
+    };
+    case null {
+      let userAddress = await getAccountAddress(user);
+      // Register new player
+      let newPlayer : GameData = {
         name = name;
         isMale = isMale;
         var score = 0;
         var rank = -99;
         playerAddress = userAddress;
-        };
-        playerData.put(user, newPlayer);
-        recalculateRanks();
       };
+      playerData.put(user, newPlayer);
+      recalculateRanks();
+      return toGameDataShared(newPlayer);
     };
   };
+};
 
   public shared(msg) func updatePlayerScore(newScore: Nat32) : async () {
     if (Principal.isAnonymous(msg.caller)) {
@@ -259,6 +260,7 @@ actor LoyaltyGame {
     }
     else
     {
+      // if (sundayId == lastRewardedSundayId) {
       if (sundayId > lastRewardedSundayId) {
         Debug.print("Distributing reward for new week. Sunday ID: " # Nat.toText(sundayId));
 

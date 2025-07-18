@@ -7,8 +7,8 @@ using LoyaltyCandy.ClimateWallet.Models;
 
 IIClientWrapper iiClient = new IIClientWrapper();
 
-// IIUser user = iiClient.Register();
-IIUser user = new IIUser(10014L);
+IIUser user = iiClient.Register();
+// IIUser user = new IIUser(10004L);
 
 Ed25519Identity identity = iiClient.data.LoadIdentity(user.UserNumber);
 iiClient.SetupAgentWithIdentity(identity); // Use original registered key
@@ -53,9 +53,10 @@ Console.WriteLine($"Receiver Account‑ID hex: {receiverAccountIdHex}");
 Tokens receiverBalance = await ledgerClient.AccountBalance(new AccountBalanceArgs(receiverAccountIdBytes));
 Console.WriteLine($"Receiver Balance: {receiverBalance.E8s / 100_000_000} ICP");
 
-// var val = climateClient.RegisterPlayer("Player13", true); // Add player to the game
+var val = climateClient.RegisterPlayer("Player13", true); // Add player to the game
 // var score = climateClient.UpdatePlayerScore((uint) user.UserNumber); //update Score
 var readResult = await climateClient.GetGameData();  // Get current user's data
+
 Console.WriteLine($"Name: {readResult.Name}, IsMale: {readResult.IsMale}, Rank: {readResult.Rank}, Score: {readResult.Score},");
 Console.WriteLine($"user Account Address hex: {readResult.PlayerAddress}");
 

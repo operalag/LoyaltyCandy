@@ -9,9 +9,17 @@ public class RankingManager : MonoBehaviour
     private ICPClient icpClient;
     private PRank currentRank;
 
+    private bool setup = false;
+
+    void OnEnable()
+    {
+        if(!setup) Setup();
+        if (currentRank == null) icpClient.GetCurrentRank();
+    }
+
     void Start()
     {
-        Setup();
+        
     }
 
     private void Setup()
@@ -20,11 +28,9 @@ public class RankingManager : MonoBehaviour
         {
             icpClient = ICPConnector.Client;
             icpClient.OnRankUpdated += OnRankUpdated;
+            setup = true;
         }
 
-        if (currentRank == null) {
-            icpClient.GetCurrentRank();
-        }
     }
 
     private void OnRankUpdated(bool success, object result, string message)

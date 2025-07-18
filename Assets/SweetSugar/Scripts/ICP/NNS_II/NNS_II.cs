@@ -52,6 +52,7 @@ public class NNS_II : MonoBehaviour
         IIUser user = new IIUser(userNumber);
         Debug.Log($"Logging in ... ");
         Ed25519Identity identity = iiClient.data.LoadIdentity(user.UserNumber);
+
         iiClient.SetupAgentWithIdentity(identity);
 
         StartCoroutine(iiClient.LoginCoroutine(
@@ -61,10 +62,13 @@ public class NNS_II : MonoBehaviour
                 Debug.Log("Login successful");
                 iCPClient.Connect(iiClient.DelegateAgent);
                 // Now safe to check balance
-                GetICPBalance();
+                // GetICPBalance();
 
             },
-            onError: (err) => Debug.LogError("Login failed: " + err.Message)
+            onError: (err) =>
+            {
+                Debug.LogError("Login failed: " + err.Message);
+            }
         ));
     }
 
