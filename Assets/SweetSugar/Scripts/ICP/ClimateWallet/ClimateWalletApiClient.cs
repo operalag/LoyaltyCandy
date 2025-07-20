@@ -25,10 +25,17 @@ namespace LoyaltyCandy.ClimateWallet
 			await this.Agent.CallAsync(this.CanisterId, "checkAndMaybeDistributeReward", arg);
 		}
 
-		public async Task<Models.PRank> GetCurrentRanking()
+		public async Task<Models.PRank> GetCurrentGlobalRanking()
 		{
 			CandidArg arg = CandidArg.FromCandid();
-			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "getCurrentRanking", arg);
+			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "getCurrentGlobalRanking", arg);
+			return reply.ToObjects<Models.PRank>(this.Converter);
+		}
+
+		public async Task<Models.PRank> GetCurrentWeeklyRanking()
+		{
+			CandidArg arg = CandidArg.FromCandid();
+			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "getCurrentWeeklyRanking", arg);
 			return reply.ToObjects<Models.PRank>(this.Converter);
 		}
 
@@ -39,6 +46,13 @@ namespace LoyaltyCandy.ClimateWallet
 			return reply.ToObjects<Models.GameDataShared>(this.Converter);
 		}
 
+		public async Task<Models.RankingResult> GetGlobalRanking(uint before, uint after, short rank)
+		{
+			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(before, this.Converter), CandidTypedValue.FromObject(after, this.Converter), CandidTypedValue.FromObject(rank, this.Converter));
+			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "getGlobalRanking", arg);
+			return reply.ToObjects<Models.RankingResult>(this.Converter);
+		}
+
 		public async Task<string> GetMyCanisterBalanceTxt()
 		{
 			CandidArg arg = CandidArg.FromCandid();
@@ -46,10 +60,10 @@ namespace LoyaltyCandy.ClimateWallet
 			return reply.ToObjects<string>(this.Converter);
 		}
 
-		public async Task<Models.RankingResult> GetRanking(uint before, uint after, short rank)
+		public async Task<Models.RankingResult> GetWeeklyRanking(uint before, uint after, short rank)
 		{
 			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(before, this.Converter), CandidTypedValue.FromObject(after, this.Converter), CandidTypedValue.FromObject(rank, this.Converter));
-			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "getRanking", arg);
+			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "getWeeklyRanking", arg);
 			return reply.ToObjects<Models.RankingResult>(this.Converter);
 		}
 
@@ -59,11 +73,24 @@ namespace LoyaltyCandy.ClimateWallet
 			await this.Agent.CallAsync(this.CanisterId, "ping", arg);
 		}
 
+		public async Task<uint> ReadScore()
+		{
+			CandidArg arg = CandidArg.FromCandid();
+			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "readScore", arg);
+			return reply.ToObjects<uint>(this.Converter);
+		}
+
 		public async Task<Models.GameDataShared> RegisterPlayer(string name, bool isMale)
 		{
 			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(name, this.Converter), CandidTypedValue.FromObject(isMale, this.Converter));
 			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "registerPlayer", arg);
 			return reply.ToObjects<Models.GameDataShared>(this.Converter);
+		}
+
+		public async Task ResetWeeklyPlayerData()
+		{
+			CandidArg arg = CandidArg.FromCandid();
+			await this.Agent.CallAsync(this.CanisterId, "resetWeeklyPlayerData", arg);
 		}
 
 		public async Task UpdatePlayerScore(uint newScore)

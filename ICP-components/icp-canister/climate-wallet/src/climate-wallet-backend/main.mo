@@ -1,13 +1,11 @@
 import Nat32 "mo:base/Nat32";
 import List "mo:base/List";
-import RBTree "mo:base/RBTree";
 import Debug "mo:base/Debug";
 import Bool "mo:base/Bool";
 import Option "mo:base/Option";
 import Int16 "mo:base/Int16";
 import Iter "mo:base/Iter";
 import Types "./types";
-import Float "mo:base/Float";
 import Principal "mo:base/Principal";
 import HashMap "mo:base/HashMap";
 import Error "mo:base/Error";
@@ -42,38 +40,51 @@ actor LoyaltyGame {
   // ========== PLAYER DATA STORAGE ==========
   // Player data storage
   stable var playerDataStable : [(Principal, GameData)] = [];
+  stable var weeklyPlayerDataStable : [(Principal, GameData)] = [];
+
   var playerData = HashMap.HashMap<Principal, GameData>(INITIAL_CAPACITY, Principal.equal, Principal.hash);
+  var weeklyPlayerData = HashMap.HashMap<Principal, GameData>(INITIAL_CAPACITY, Principal.equal, Principal.hash);
+
+
+   
+  var testDay : Nat = 2890;
 
   // ========== SYSTEM METHODS ==========
   system func preupgrade() {
     playerDataStable := Iter.toArray(playerData.entries());
+    weeklyPlayerDataStable := Iter.toArray(weeklyPlayerData.entries());
   };
 
   system func postupgrade() {
     // Rebuild player data
     playerData := HashMap.fromIter<Principal, GameData>(
-      playerDataStable.vals(),
-      INITIAL_CAPACITY,
-      Principal.equal, 
-      Principal.hash
-    );
+    playerDataStable.vals(), 
+    INITIAL_CAPACITY, 
+    Principal.equal, 
+    Principal.hash);
+
+    weeklyPlayerData := HashMap.fromIter<Principal, GameData>(
+    weeklyPlayerDataStable.vals(),
+    INITIAL_CAPACITY,
+    Principal.equal,
+    Principal.hash);
   };
 
   // ========== PLAYER MANAGEMENT ==========
   //remainder to make if possible if the player is already register reject the resgistration
   public shared(msg) func registerPlayer(name: Text, isMale: Bool) : async GameDataShared {
-  if (Principal.isAnonymous(msg.caller)) {
-    throw Error.reject("Anonymous users are not allowed to register.");
-  };
-  let user = msg.caller;
-
-  switch (playerData.get(user)) {
-    case (?existing) {
-      // Player already registered — return their current shared data
-      Debug.print("Player already exists");
-      return toGameDataShared(existing);
+    if (Principal.isAnonymous(msg.caller)) {
+      throw Error.reject("Anonymous users are not allowed to register.");
     };
-    case null {
+    let user = msg.caller;
+
+    switch (playerData.get(user)) {
+      case (?existing) {
+        // Player already registered — return their current shared data
+        Debug.print("Player already exists");
+        return toGameDataShared(existing);
+      };
+      case null {
       let userAddress = await getAccountAddress(user);
       // Register new player
       let newPlayer : GameData = {
@@ -82,29 +93,10 @@ actor LoyaltyGame {
         var score = 0;
         var rank = -99;
         playerAddress = userAddress;
-      };
-      playerData.put(user, newPlayer);
-      recalculateRanks();
-      return toGameDataShared(newPlayer);
-    };
-  };
-};
-
-  public shared(msg) func updatePlayerScore(newScore: Nat32) : async () {
-    if (Principal.isAnonymous(msg.caller)) {
-      throw Error.reject("Anonymous access not allowed.");
-    };
-    let caller = msg.caller;
-
-    switch (playerData.get(caller)) {
-      case (?data) {
-        data.score := newScore;
-        playerData.put(caller, data);
-        Debug.print("Updated score: " # Nat32.toText(newScore));
-        recalculateRanks(); // refresh rank after score update
-      };
-      case null {
-        throw Error.reject("Player not found. Please register first.");
+        };
+        playerData.put(user, newPlayer);
+        recalculateRanks();
+        return toGameDataShared(newPlayer);
       };
     };
   };
@@ -128,15 +120,29 @@ actor LoyaltyGame {
     Debug.print("Recalculated ranks.");
   };
 
+  func recalculateWeeklyRanks() {
+    let allPlayers = Iter.toArray(weeklyPlayerData.entries());
+    let sorted = Array.sort<(Principal, GameData)>(
+      allPlayers,
+      func((_, a), (_, b)) = Nat32.compare(b.score, a.score)
+    );
+
+    var i: Int = 1;
+    for ((principal, data) in sorted.vals()) {
+      data.rank := Int16.fromInt(i);
+      weeklyPlayerData.put(principal, data);
+      i += 1;
+    };
+
+    Debug.print("Weekly ranks recalculated.");
+  };
+
   public shared(msg) func getGameData() : async GameDataShared {
     if (Principal.isAnonymous(msg.caller)) {
       throw Error.reject("Anonymous access not allowed.");
     };
 
     let caller = msg.caller;
-
-    await checkAndMaybeDistributeReward(); // reward distribution call
-
     switch (playerData.get(caller)) {
       case (?data) 
       {
@@ -146,8 +152,96 @@ actor LoyaltyGame {
     }
   };
 
+  public shared(msg) func updatePlayerScore(newScore: Nat32) : async () {
+    if (Principal.isAnonymous(msg.caller)) {
+      throw Error.reject("Anonymous access not allowed.");
+    };
+
+    let caller = msg.caller;
+
+    let globalScore : Nat32 = Option.get(Option.map<GameData, Nat32>(playerData.get(caller),func(d: GameData) : Nat32 { d.score }), 0 : Nat32);
+    let diff = if (newScore > globalScore) newScore - globalScore else globalScore - newScore;
+
+    let weeklyAdded = await updateWeeklyScore(caller, diff); // Step 1: Update or insert weekly score (overwrite score for this week)
+
+    addToGlobalScore(caller, weeklyAdded); // Step 2: Add that score to global total (accumulative)
+    recalculateWeeklyRanks(); // Step 3: Recalculate both rankings
+    recalculateRanks();
+
+    Debug.print("Player updated: +" # Nat32.toText(weeklyAdded) # " to global + weekly reset");
+  };
+
+  public shared(msg) func readScore() : async Nat32 {
+    let caller = msg.caller;
+
+    if (Principal.isAnonymous(caller)) {
+      throw Error.reject("Anonymous access not allowed.");
+    };
+
+    switch (playerData.get(caller)) {
+      case (?data) {
+        return data.score;
+      };
+      case null {
+        throw Error.reject("Player not found. Please register first.");
+      };
+    };
+  };
+
+  func updateWeeklyScore(user: Principal, newScore: Nat32) : async Nat32 {
+    let address = await getAccountAddress(user);
+    let diff : Nat32 = switch (weeklyPlayerData.get(user)) {
+      case (?data) {
+        let added = newScore;
+        data.score := newScore; // Replace for weekly
+        added
+      };
+      case null {
+        let newData : GameData = {
+          name = Option.get(Option.map<GameData, Text>(playerData.get(user), func(d: GameData) : Text { d.name }), "Unknown");
+          isMale = Option.get(Option.map<GameData, Bool>(playerData.get(user), func(d: GameData) : Bool { d.isMale }), true);
+
+          var score = newScore;
+          var rank = -99;
+          playerAddress = address;
+        };
+        weeklyPlayerData.put(user, newData);
+        newScore;
+      };
+    };
+
+    Debug.print("Weekly Score added");
+
+    // Update entry
+    ignore weeklyPlayerData.get(user); // already updated
+    return diff;
+  };
+
+  public shared func resetWeeklyPlayerData() : async () {
+    weeklyPlayerData := HashMap.HashMap<Principal, GameData>(
+      INITIAL_CAPACITY,
+      Principal.equal,
+      Principal.hash
+    );
+    weeklyPlayerDataStable := [];
+    Debug.print("Weekly player data has been reset.");
+  };
+
+  func addToGlobalScore(user: Principal, scoreToAdd: Nat32) {
+    switch (playerData.get(user)) {
+      case (?data) {
+        data.score += scoreToAdd;
+        playerData.put(user, data);
+        Debug.print("Global Score added");
+      };
+      case null {
+        Debug.print("User not found in global data. Score not added.");
+      };
+    };
+  };
+
   func getTopRankingWithPrincipal() : async [GameDataWithPrincipal] {
-    let allPlayers = Iter.toArray(playerData.entries());
+    let allPlayers = Iter.toArray(weeklyPlayerData.entries());
     let sorted = Array.sort<(Principal, GameData)>(
       allPlayers,
       func((_, a), (_, b)) {
@@ -169,12 +263,14 @@ actor LoyaltyGame {
     )
   };
 
-  public shared (msg) func getCurrentRanking() : async Types.PRank {
+  public shared (msg) func getCurrentGlobalRanking() : async Types.PRank {
     let caller = msg.caller;
 
     if (Principal.isAnonymous(caller)) {
       throw Error.reject("Anonymous access not allowed.");
     };
+
+    Debug.print("Fetching Global Ranking Data");
 
     switch (playerData.get(caller)) {
       case (?data) {
@@ -195,7 +291,35 @@ actor LoyaltyGame {
     };
   };
 
-  public shared func getRanking(before: Nat32, after: Nat32, rank: Int16) : async RankingResult {
+  public shared (msg) func getCurrentWeeklyRanking() : async Types.PRank {
+    let caller = msg.caller;
+
+    if (Principal.isAnonymous(caller)) {
+      throw Error.reject("Anonymous access not allowed.");
+    };
+
+    Debug.print("Fetching Weekly Ranking Data");
+
+    switch (weeklyPlayerData.get(caller)) {
+      case (?data) {
+        if (data.rank < 1) {
+          recalculateRanks(); // Refresh ranks if the player's rank hasn't been set
+        };
+        {
+          name = data.name;
+          isMale = data.isMale;
+          score = data.score;
+          rank = data.rank;
+          playerAddress = data.playerAddress;
+        };
+      };
+      case null {
+        throw Error.reject("Player not found. Please register first.");
+      };
+    };
+  };
+
+  public shared func getGlobalRanking(before: Nat32, after: Nat32, rank: Int16) : async RankingResult {
     let allPlayers = Iter.toArray(playerData.vals());
     // Sort players by descending score
     let sorted = Array.sort<GameData>(
@@ -233,11 +357,55 @@ actor LoyaltyGame {
       };
     };
 
+    Debug.print("Fetching Global limit Ranking Data");
+
+    { ranking = List.toArray(List.reverse(list)) }
+  };
+
+  public shared func getWeeklyRanking(before: Nat32, after: Nat32, rank: Int16) : async RankingResult {
+    let allPlayers = Iter.toArray(weeklyPlayerData.vals());
+    // Sort players by descending score
+    let sorted = Array.sort<GameData>(
+      allPlayers,
+      func(a, b) { Nat32.compare(b.score, a.score) } // descending
+    );
+
+    // Safely convert Nat32 to Int16 using range check
+    func safeToInt16(n: Nat32) : Int16 {
+      if (n <= 32_767) {
+        Int16.fromNat16(Nat32.toNat16(n));
+      } else {
+        Int16.fromNat16(0);
+      }
+    };
+
+    let beforeInt16 = safeToInt16(before);
+    let afterInt16 = safeToInt16(after);
+
+    // Helper to convert GameData → PRank
+    func toPRank(g : GameData) : PRank {
+      {
+        name = g.name;
+        isMale = g.isMale;
+        score = g.score;
+        rank = g.rank;
+        playerAddress = g.playerAddress;
+      }
+    };
+
+    var list = List.nil<PRank>();
+    for (player in sorted.vals()) {
+      if (player.rank >= rank - beforeInt16 and player.rank <= rank + afterInt16) {
+        list := List.push(toPRank(player), list);
+      };
+    };
+
+    Debug.print("Fetching Weekly limit Ranking Data");
+
     { ranking = List.toArray(List.reverse(list)) }
   };
 
   //=========== DSTRUTUBION ON SUNDAY ============
-
   // Determines which Sunday "this week" corresponds to
   func getLatestSundayIdFromNow() : Nat {
     let now = Time.now();
@@ -255,18 +423,22 @@ actor LoyaltyGame {
     if (not isWeeklyCompetitionRunning) {
       isWeeklyCompetitionRunning := true;
       lastRewardedSundayId := sundayId;
+
+      // testDay := sundayId; //for testing
+
       Debug.print("Competition started on Sunday ID: " # Nat.toText(sundayId));
       return;
     }
     else
     {
-      // if (sundayId == lastRewardedSundayId) {
-      if (sundayId > lastRewardedSundayId) {
+      if (sundayId > testDay) {
+      // if (sundayId > lastRewardedSundayId) {
         Debug.print("Distributing reward for new week. Sunday ID: " # Nat.toText(sundayId));
 
         await rewardTop10(rewardAmount); //rewaring top 10 player
 
         lastRewardedSundayId := sundayId;
+        await resetWeeklyPlayerData();
         Debug.print("Reward given and marked for Sunday ID: " # Nat.toText(sundayId));
       } else {
         Debug.print("Reward already distributed for the latest Sunday or Wait till next sunda.");
@@ -274,8 +446,35 @@ actor LoyaltyGame {
     };
   };
 
-
   // ========== LEDGER INTERACTION ==========
+  let ledger : actor {
+    icrc1_transfer: shared {
+      from_subaccount: ?Blob;
+      to: {
+        owner: Principal;
+        subaccount: ?Blob;
+      };
+      amount: Nat;
+      fee: ?{ e8s: Nat };
+      memo: ?Blob;
+      created_at_time: ?{ timestamp_nanos: Nat64 };
+    } -> async {
+      #Ok : Nat;
+      #Err : {
+        #GenericError : { message : Text; error_code : Nat };
+        #TemporarilyUnavailable : {};
+        #BadBurn : { min_burn_amount : Nat };
+        #Duplicate : { duplicate_of : Nat };
+        #BadFee : { expected_fee : Nat };
+        #CreatedInFuture : { ledger_time : Nat64 };
+        #TooOld : {};
+        #InsufficientFunds : { balance : Nat };
+      };
+    };
+    icrc1_balance_of : shared Account -> async Nat;
+    account_identifier : shared Account -> async Blob;
+  } = actor("ryjl3-tyaaa-aaaaa-aaaba-cai");  // Official ICP Ledger canister ID
+
   func rewardTop10(amountPerPlayerE8s: Nat) : async () {
     let topPlayers = await getTopRankingWithPrincipal();
     for (player in topPlayers.vals()) {
@@ -288,10 +487,6 @@ actor LoyaltyGame {
       };
     };
   };
-
-  let ledger : actor {
-    icrc1_balance_of : shared Account -> async Nat;
-  } = actor("ryjl3-tyaaa-aaaaa-aaaba-cai"); // ICP Ledger canister on local network
 
   // Balance in e8s (1 ICP = 100 000 000 e8s)
   func getMyCanisterBalance() : async Nat {
@@ -315,17 +510,13 @@ actor LoyaltyGame {
     Nat.toText(whole) # "." # padded # " ICP"
   };
 
-  let ledgerAccountIdentifier : actor {
-    account_identifier : shared Account -> async Blob;
-  } = actor("ryjl3-tyaaa-aaaaa-aaaba-cai"); // ICP Ledger canister on local network
-
   func getAccountAddress(userPrincipal: Principal) : async Text {
     let account : Account = {
       owner = userPrincipal;
       subaccount = null;
     };
 
-    let blob : Blob = await ledgerAccountIdentifier.account_identifier(account);
+    let blob : Blob = await ledger.account_identifier(account);
     blobToHex(blob)
   };
 
@@ -375,34 +566,8 @@ actor LoyaltyGame {
   };
 
   // ========== TRANSFER TOKEN ==========
-  let ledgerTransfer : actor {
-    icrc1_transfer: shared {
-      from_subaccount: ?Blob;
-      to: {
-        owner: Principal;
-        subaccount: ?Blob;
-      };
-      amount: Nat;
-      fee: ?{ e8s: Nat };
-      memo: ?Blob;
-      created_at_time: ?{ timestamp_nanos: Nat64 };
-    } -> async {
-      #Ok : Nat;
-      #Err : {
-        #GenericError : { message : Text; error_code : Nat };
-        #TemporarilyUnavailable : {};
-        #BadBurn : { min_burn_amount : Nat };
-        #Duplicate : { duplicate_of : Nat };
-        #BadFee : { expected_fee : Nat };
-        #CreatedInFuture : { ledger_time : Nat64 };
-        #TooOld : {};
-        #InsufficientFunds : { balance : Nat };
-      };
-    };
-  } = actor("ryjl3-tyaaa-aaaaa-aaaba-cai");  // Official ICP Ledger canister ID
-
   func sendIcp(to: Principal, amountE8s: Nat) : async Nat {
-    let transferResult = await ledgerTransfer.icrc1_transfer({
+    let transferResult = await ledger.icrc1_transfer({
       from_subaccount = null;
       to = {
         owner = to;

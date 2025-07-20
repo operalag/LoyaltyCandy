@@ -1,29 +1,16 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using EdjCase.ICP.Agent.Agents;
 using EdjCase.ICP.Candid.Models;
-using LoyaltyCandy.HelloClient;
-using TMPro;
-using Unity.VisualScripting;
 using UnityEngine;
 
 namespace LoyaltyCandy  {
     public class ICPConnector : MonoBehaviour
     {
         public static ICPClient Client {get { return clientInstance; } private set{}}
-
-        // [SerializeField]
-        // private TMP_Text greetingLabel;
-        // [SerializeField]
-
         [SerializeField]
         private ICPClient icpClient;
         [SerializeField]
         private string coinsPreferenceName = "Gems";
 
-        // private HelloClientApiClient client;
         private static ICPClient clientInstance;
 
         private void Awake()
@@ -49,7 +36,6 @@ namespace LoyaltyCandy  {
             icpClient.CheckCoinBalance(numCoins);
             icpClient.OnICPClientReady -= SetupCoins;
         }
-
     }
 
     [Serializable]
@@ -57,13 +43,7 @@ namespace LoyaltyCandy  {
 
         [SerializeField]
         private string canisterId = "";
-
         private Principal principal;
-
         public Principal CanisterPrincipal {get { if (principal == null) principal = Principal.FromText(this.canisterId); return principal;} set {}}
-
     }
-
-
 }
-

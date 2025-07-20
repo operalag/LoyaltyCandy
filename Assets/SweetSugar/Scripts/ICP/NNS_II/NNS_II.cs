@@ -1,15 +1,8 @@
-using System.Collections.Generic;
 using UnityEngine;
-using EdjCase.ICP.Candid.Models;
-using LoyaltyCandy.NNSLedger;
-using System;
 using UnityEngine.UI;
-using System.Collections;
-using LoyaltyCandy.NNSLedger.Models;
 using System.Threading.Tasks;
 using LoyaltyCandy;
 using EdjCase.ICP.Agent.Identities;
-
 
 public class NNS_II : MonoBehaviour
 {
@@ -61,9 +54,6 @@ public class NNS_II : MonoBehaviour
             {
                 Debug.Log("Login successful");
                 iCPClient.Connect(iiClient.DelegateAgent);
-                // Now safe to check balance
-                // GetICPBalance();
-
             },
             onError: (err) =>
             {
@@ -81,7 +71,6 @@ public class NNS_II : MonoBehaviour
 
             Debug.Log("Your Account Identifier (hex): " + balanceCheck.AccountIDHex);
             Debug.Log($"Updated Balance: {balanceCheck.ICPBalance} ICP");
-
         },
         onError: (err) => Debug.LogError("Balance Check failed: " + err.Message)
         ));

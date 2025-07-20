@@ -80,26 +80,26 @@ public class WeeklyRankingRewardManager : MonoBehaviour
     }
 
     private void OnFullRankingReceived(bool success, object result, string message)
-{
-    if (!success)
     {
-        Debug.LogError("Failed to fetch full ranking: " + message);
-        return;
-    }
-
-    if (result is List<RankingResult> rankings)
-    {
-        Debug.Log("Full leaderboard received.");
-        foreach (var entry in rankings)
+        if (!success)
         {
-            Debug.Log($"Rank #{entry.Ranking}: {entry.Name} - {entry.Gems}");
+            Debug.LogError("Failed to fetch full ranking: " + message);
+            return;
+        }
+
+        if (result is List<RankingResult> rankings)
+        {
+            Debug.Log("Full leaderboard received.");
+            foreach (var entry in rankings)
+            {
+                Debug.Log($"Rank #{entry.Ranking}: {entry.Name} - {entry.Gems}");
+            }
+        }
+        else
+        {
+            Debug.LogError("Invalid full ranking result: " + result.GetType());
         }
     }
-    else
-    {
-        Debug.LogError("Invalid full ranking result: " + result.GetType());
-    }
-}
 
 
     private void TryDeductWeeklyPayout()

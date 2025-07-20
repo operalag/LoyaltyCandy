@@ -18,7 +18,7 @@ public class Tester
         currentRank = gameDataShared;
     }
 
-    public async Task printRanking(uint before, uint after)
+    public async Task printGlobalRanking(uint before, uint after)
     {
         if (currentRank != null)
         {
@@ -29,7 +29,30 @@ public class Tester
             Console.WriteLine("No rank");
         }
 
-        RankingResult result = await climateClient.GetRanking(before, after, currentRank.Rank);
+        RankingResult result = await climateClient.GetGlobalRanking(before, after, currentRank.Rank);
+        for (int i = 0; i < result.Ranking.Count; i++)
+        {
+            PRank pRank = result.Ranking[i];
+            if (pRank.Name.Equals(currentRank.Name))
+            {
+                currentRank = gameDataShared(pRank);
+            }
+            Console.WriteLine(string.Format("#{0} {1} ({2})", pRank.Rank.ToString(), pRank.Name, pRank.Score.ToString()));
+        }
+    }
+
+    public async Task printWeeklyRanking(uint before, uint after)
+    {
+        if (currentRank != null)
+        {
+            Console.WriteLine($"Current ranking for {currentRank.Name}: #{currentRank.Rank} {currentRank.Score}");
+        }
+        else
+        {
+            Console.WriteLine("No rank");
+        }
+
+        RankingResult result = await climateClient.GetWeeklyRanking(before, after, currentRank.Rank);
         for (int i = 0; i < result.Ranking.Count; i++)
         {
             PRank pRank = result.Ranking[i];
