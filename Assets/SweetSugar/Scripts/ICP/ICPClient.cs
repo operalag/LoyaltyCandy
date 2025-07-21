@@ -7,6 +7,7 @@ using LoyaltyCandy.ClimateWallet;
 using LoyaltyCandy.ClimateWallet.Models;
 using UnityEngine;
 using GemEncryption;
+using UnityEngine.UI;
 
 namespace LoyaltyCandy {
     public class ICPClient : MonoBehaviour {
@@ -83,16 +84,6 @@ namespace LoyaltyCandy {
             Debug.Log("Testing Completed");
         }
 
-        private async Task<int> GetOnlineScoreSafe() {
-            try {
-                var data = await climateClient.GetGameData();
-                return (int)data.Score;
-            } catch (Exception e) {
-                Debug.LogError($"Error while fetching score: {e.Message}");
-                return gameBalance;
-            }
-        }
-
         // ========== Offline Handling ==========
         private void HandleOfflineMode() {
             int currentGems = PlayerPrefs.GetInt("Gems", 0);
@@ -122,9 +113,6 @@ namespace LoyaltyCandy {
         }
 
         // ========== Score Read & Write ==========
-        // public void ReadScore() {
-        //     StartCoroutine(GetPlayerScoreCoroutine());
-        // }
 
         public void SaveCoins(int coins) {
             gameBalance = coins;
@@ -185,8 +173,15 @@ namespace LoyaltyCandy {
 
             OnRead?.Invoke(true, gameData, exception);
         }
+    
+        private async Task<string> GetCanisterAccountHex()
+        {
+            return await climateClient.GetMyCanisterBalanceTxt();
+        }
 
-        private async Task<GameDataShared> GetGameDataAsync() {
+
+        private async Task<GameDataShared> GetGameDataAsync()
+        {
             return await climateClient.GetGameData();
         }
 
