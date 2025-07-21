@@ -46,8 +46,4 @@ public class ScoreController : MonoBehaviour
         setButton.enabled = false;
         icpClient.SaveCoins(int.Parse(setInput.text));
     }
-
-    public void ReadScore() {
-        icpClient.ReadScore();
-    }
 }

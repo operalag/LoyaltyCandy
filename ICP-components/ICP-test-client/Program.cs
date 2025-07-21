@@ -7,8 +7,8 @@ using LoyaltyCandy.ClimateWallet.Models;
 
 IIClientWrapper iiClient = new IIClientWrapper();
 
-IIUser user = iiClient.Register();
-// IIUser user = new IIUser(10002L);
+// IIUser user = iiClient.Register();
+IIUser user = new IIUser(10004L);
 
 Ed25519Identity identity = iiClient.data.LoadIdentity(user.UserNumber);
 iiClient.SetupAgentWithIdentity(identity); // Use original registered key
@@ -23,7 +23,7 @@ Principal ledgerCanisterId = Principal.FromText("ryjl3-tyaaa-aaaaa-aaaba-cai");
 NNSLedgerApiClient ledgerClient = new NNSLedgerApiClient(iiClient.DelegateAgent, ledgerCanisterId);
 
 //login to custom canister
-Principal climateWalletPrincipal = Principal.FromText("uxrrr-q7777-77774-qaaaq-cai");
+Principal climateWalletPrincipal = Principal.FromText("bkyz2-fmaaa-aaaaa-qaaaq-cai");
 ClimateWalletApiClient climateClient = new ClimateWalletApiClient(iiClient.DelegateAgent, climateWalletPrincipal);
 
 //Sender Account

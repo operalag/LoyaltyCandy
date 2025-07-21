@@ -62,10 +62,16 @@ namespace LoyaltyCandy {
                 ApplyOfflineGem();
                 yield return new WaitUntil(() => !isChecking);
 
-                var getScoreTask = GetOnlineScoreSafe();
-                while (!getScoreTask.IsCompleted) yield return null;
+                // var getScoreTask = GetOnlineScoreSafe();
+                // while (!getScoreTask.IsCompleted) yield return null;
 
-                gameBalance = getScoreTask.Result;
+                StartCoroutine(GetPlayerScoreCoroutine((score) => {
+                    gameBalance = (int)score;
+                    Debug.Log("Score received in callback: " + score);
+                    // Do something with score
+                }));
+
+                // gameBalance = getScoreTask.Result;
                 SetLastKnownBalance(gameBalance);
 
                 if (!appliedOfflineGem) {
@@ -116,9 +122,9 @@ namespace LoyaltyCandy {
         }
 
         // ========== Score Read & Write ==========
-        public void ReadScore() {
-            StartCoroutine(GetPlayerScoreCoroutine());
-        }
+        // public void ReadScore() {
+        //     StartCoroutine(GetPlayerScoreCoroutine());
+        // }
 
         public void SaveCoins(int coins) {
             gameBalance = coins;
@@ -129,18 +135,26 @@ namespace LoyaltyCandy {
             return await climateClient.ReadScore();
         }
 
-        public IEnumerator GetPlayerScoreCoroutine() {
+        public IEnumerator GetPlayerScoreCoroutine(Action<uint> onScoreRetrieved)
+        {
             Debug.Log("Retrieving Game Data...");
             Task<uint> fetchScoreTask = GetPlayerScoreAsync();
-            while (!fetchScoreTask.IsCompleted) yield return null;
 
-            GameDataShared gameData = new GameDataShared();
-            if (fetchScoreTask.IsCompletedSuccessfully) {
-                gameData.Score = fetchScoreTask.Result;
-                Debug.Log($"Game score retrieved: Score: {gameData.Score}");
+            // Wait for the task to complete
+            while (!fetchScoreTask.IsCompleted)
+                yield return null;
+
+            if (fetchScoreTask.IsCompletedSuccessfully)
+            {
+                uint score = fetchScoreTask.Result;
+                Debug.Log($"Game score retrieved: Score: {score}");
+                onScoreRetrieved?.Invoke(score);
             }
-
-            OnRead?.Invoke(true, gameData, fetchScoreTask.Exception?.Message);
+            else
+            {
+                Debug.LogError("Failed to retrieve score.");
+                onScoreRetrieved?.Invoke(0); // or handle error
+            }
         }
 
         // ========== Player Initialization ==========
@@ -218,7 +232,7 @@ namespace LoyaltyCandy {
                 gameBalance = numCoins;
                 isChecking = true;
                 OnRead += CompareBalance;
-                ReadScore();
+                // ReadScore();
             }
         }
 
