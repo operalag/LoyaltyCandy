@@ -25,7 +25,10 @@ namespace LoyaltyCandy.ClimateWallet.Models
 		[CandidName("score")]
 		public Score Score { get; set; }
 
-		public PRank(bool isMale, PlayerName name, string playerAddress, Rank rank, bool rewarded, Score score)
+		[CandidName("weeklyRank")]
+		public short WeeklyRank { get; set; }
+
+		public PRank(bool isMale, PlayerName name, string playerAddress, Rank rank, bool rewarded, Score score, short weeklyRank)
 		{
 			this.IsMale = isMale;
 			this.Name = name;
@@ -33,6 +36,7 @@ namespace LoyaltyCandy.ClimateWallet.Models
 			this.Rank = rank;
 			this.Rewarded = rewarded;
 			this.Score = score;
+			this.WeeklyRank = weeklyRank;
 		}
 
 		public PRank()

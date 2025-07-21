@@ -23,7 +23,7 @@ public class WeeklyRankingRewardManager : MonoBehaviour
         if (claimButton != null) claimButton.onClick.AddListener(OnClaimClicked);
     }
 
-   public void ShowWeeklyRewardPanel(int rank, int rewardAmount)
+   public void ShowWeeklyRewardPanel(int rank, string rewardAmount)
     {
         if (rankText != null) rankText.text = $"#{rank}";
         if (rewardText != null) rewardText.text = $"{rewardAmount:N0} Tokens!";

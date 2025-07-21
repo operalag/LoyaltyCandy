@@ -35,7 +35,7 @@ actor LoyaltyGame {
 
   // ========== CONSTANTS ==========
   let INITIAL_CAPACITY = 16;
-  let EMPTY_RANK : PRank = {name=""; isMale=true; rank=0; score=0; playerAddress=""; rewarded = false};
+  let EMPTY_RANK : PRank = {name=""; isMale=true; rank=0; score=0; playerAddress=""; rewarded = false; weeklyRank = 0};
 
   // ========== PLAYER DATA STORAGE ==========
   // Player data storage
@@ -44,8 +44,6 @@ actor LoyaltyGame {
 
   var playerData = HashMap.HashMap<Principal, GameData>(INITIAL_CAPACITY, Principal.equal, Principal.hash);
   var weeklyPlayerData = HashMap.HashMap<Principal, GameData>(INITIAL_CAPACITY, Principal.equal, Principal.hash);
-
-
 
   // ========== SYSTEM METHODS ==========
   system func preupgrade() {
@@ -92,6 +90,7 @@ actor LoyaltyGame {
         var rank = -99;
         playerAddress = userAddress;
         rewarded = false;
+        weeklyRank = 0;
         };
         playerData.put(user, newPlayer);
         recalculateRanks();
@@ -157,7 +156,6 @@ actor LoyaltyGame {
     };
 
     let caller = msg.caller;
-
     let globalScore : Nat32 = Option.get(Option.map<GameData, Nat32>(playerData.get(caller),func(d: GameData) : Nat32 { d.score }), 0 : Nat32);
       
     if (newScore <= globalScore) {
@@ -165,7 +163,6 @@ actor LoyaltyGame {
     };
 
     let diff = newScore - globalScore;
-
     let weeklyAdded = await updateWeeklyScore(caller, diff); // Step 1: Update or insert weekly score (overwrite score for this week)
 
     addToGlobalScore(caller, weeklyAdded); // Step 2: Add that score to global total (accumulative)
@@ -209,6 +206,7 @@ actor LoyaltyGame {
           var rank = -99;
           playerAddress = address;
           rewarded = false;
+          weeklyRank = 0;
         };
         weeklyPlayerData.put(user, newData);
         newScore;
@@ -289,6 +287,7 @@ actor LoyaltyGame {
           rank = data.rank;
           playerAddress = data.playerAddress;
           rewarded = data.rewarded;
+          weeklyRank = data.weeklyRank;
         };
       };
       case null {
@@ -296,6 +295,35 @@ actor LoyaltyGame {
       };
     };
   };
+
+  public shared (msg) func showRewardAmount() : async Text {
+    let caller = msg.caller;
+
+    if (Principal.isAnonymous(caller)) {
+        throw Error.reject("Anonymous access not allowed.");
+    };
+
+    let e8s : Nat = rewardAmount;
+    let whole      = e8s / 100_000_000;
+    let fractional = e8s % 100_000_000;
+
+    // Truncate to 2 decimal digits
+    let fractional2Digits = fractional / 1_000_000;
+    let fracTxt = Nat.toText(fractional2Digits);
+
+    // Pad with leading 0 if needed
+    let padded = if (fractional2Digits < 10) {
+        "0" # fracTxt
+    } else {
+        fracTxt
+    };
+
+    let result = Nat.toText(whole) # "." # padded;
+    Debug.print(result);
+    result
+  };
+
+  
 
   public shared (msg) func getCurrentWeeklyRanking() : async Types.PRank {
     let caller = msg.caller;
@@ -318,6 +346,7 @@ actor LoyaltyGame {
           rank = data.rank;
           playerAddress = data.playerAddress;
           rewarded = data.rewarded;
+          weeklyRank = data.weeklyRank;
         };
       };
       case null {
@@ -355,6 +384,7 @@ actor LoyaltyGame {
         rank = g.rank;
         playerAddress = g.playerAddress;
         rewarded = g.rewarded;
+        weeklyRank = g.weeklyRank;
       }
     };
 
@@ -399,6 +429,7 @@ actor LoyaltyGame {
         rank = g.rank;
         playerAddress = g.playerAddress;
         rewarded = g.rewarded;
+        weeklyRank = g.weeklyRank;
       }
     };
 
@@ -437,7 +468,7 @@ actor LoyaltyGame {
     }
     else
     {
-      if (sundayId > lastRewardedSundayId) {
+      if (sundayId > 0) {
         Debug.print("Distributing reward for new week. Sunday ID: " # Nat.toText(sundayId));
         await rewardTop10(rewardAmount); //rewaring top 10 player
 
@@ -492,7 +523,7 @@ actor LoyaltyGame {
         Debug.print("Sent to " # player.data.name # " | Block: " # Nat.toText(blockIndex));
 
         // Call internal version directly
-        markRewarded(player.principal, true);
+        markRewarded(player.principal);
 
       } catch (e) {
         Debug.print("Failed for " # player.data.name # ": " # Error.message(e));
@@ -501,30 +532,82 @@ actor LoyaltyGame {
   };
 
   // Internal version (can be called from within the canister)
-  func markRewarded(player: Principal, rewarded: Bool) {
-    switch (playerData.get(player)) {
-      case (?data) {
-        let updatedData : GameData = {
-          name = data.name;
-          isMale = data.isMale;
-          var score = data.score;
-          var rank = data.rank;
-          playerAddress = data.playerAddress;
-          rewarded = rewarded;
+  func markRewarded(player: Principal) {
+      switch (playerData.get(player)) {
+        case (?data) {
+          switch (weeklyPlayerData.get(player)) {
+            case (?weeklyData) {
+              let updatedData : GameData = {
+                name = data.name;
+                isMale = data.isMale;
+                var score = data.score;
+                var rank = data.rank;
+                playerAddress = data.playerAddress;
+                rewarded = true;
+                weeklyRank = weeklyData.rank; // unwrapped properly
+              };
+              playerData.put(player, updatedData);
+            };
+            case null {
+              Debug.print("No weekly data found.");
+            };
+          };
         };
-        playerData.put(player, updatedData);
+      case null {
+        Debug.print("No player data found.");
       };
-      case null {};
     };
   };
 
   // Public shared version (for external calls)
-  public shared(msg) func rewardClaimed(rewarded: Bool) : async () {
+  public shared(msg) func rewardClaimed() : async () {
     if (Principal.isAnonymous(msg.caller)) {
       throw Error.reject("Anonymous access not allowed.");
     };
-    markRewarded(msg.caller, rewarded);
+      switch (playerData.get(msg.caller)) {
+        case (?data) {
+          let updatedData : GameData = {
+            name = data.name;
+            isMale = data.isMale;
+            var score = data.score;
+            var rank = data.rank;
+            playerAddress = data.playerAddress;
+            rewarded = false;
+            weeklyRank = data.weeklyRank; // unwrapped properly
+            };
+            playerData.put(msg.caller, updatedData);
+          };
+        case null {
+          Debug.print("No weekly data found.");
+      };
+    };
   };
+
+  public shared(msg) func resetPlayerWeeklyRank() : async() {
+    let caller = msg.caller;
+
+    if (Principal.isAnonymous(caller)) {
+      throw Error.reject("Anonymous access not allowed.");
+    };
+    switch (playerData.get(caller)) {
+        case (?data) {
+          let updatedData : GameData = {
+            name = data.name;
+            isMale = data.isMale;
+            var score = data.score;
+            var rank = data.rank;
+            playerAddress = data.playerAddress;
+            rewarded = data.rewarded;
+            weeklyRank = 0; // unwrapped properly
+          };
+          playerData.put(caller, updatedData);
+        };
+      case null {
+        Debug.print("No weekly data found.");
+      };
+    };
+  };
+  
 
   // Balance in e8s (1 ICP = 100 000 000 e8s)
   func getMyCanisterBalance() : async Nat {
@@ -534,7 +617,7 @@ actor LoyaltyGame {
     };
 
     // This awaits the remote ledger call and returns the Nat result.
-    await ledger.icrc1_balance_of(account)
+    await ledger.icrc1_balance_of(account);
   };
 
   public shared func getMyCanisterBalanceTxt() : async Text {
@@ -567,6 +650,7 @@ actor LoyaltyGame {
       rank = data.rank;
       playerAddress = data.playerAddress;
       rewarded = data.rewarded;
+      weeklyRank = data.weeklyRank;
     }
   };
 
@@ -605,6 +689,17 @@ actor LoyaltyGame {
   };
 
   // ========== TRANSFER TOKEN ==========
+  public shared(msg) func getCanisterAccountAddressHex() : async Text {
+    let caller = msg.caller;
+
+    if (Principal.isAnonymous(caller)) {
+      throw Error.reject("Anonymous access not allowed.");
+    };
+    
+    let canisterPrincipal = Principal.fromActor(LoyaltyGame);
+    await getAccountAddress(canisterPrincipal)
+  };
+
   func sendIcp(to: Principal, amountE8s: Nat) : async Nat {
     let transferResult = await ledger.icrc1_transfer({
       from_subaccount = null;
@@ -663,7 +758,7 @@ actor LoyaltyGame {
   {
     switch (rank) 
     {
-      case (?rank) return {name = rank.name; isMale = rank.isMale; rank = rank.rank; score = rank.score; playerAddress = rank.playerAddress; rewarded = rank.rewarded};
+      case (?rank) return {name = rank.name; isMale = rank.isMale; rank = rank.rank; score = rank.score; playerAddress = rank.playerAddress; rewarded = rank.rewarded; weeklyRank = rank.weeklyRank};
       case (null) return EMPTY_RANK;
     };
   };

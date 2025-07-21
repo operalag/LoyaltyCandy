@@ -16,6 +16,7 @@ module {
         var score: Score;
         playerAddress : Text;
         rewarded : Bool;
+        weeklyRank :Int16;
     };
 
     public type GameDataShared = {
@@ -25,6 +26,7 @@ module {
     rank: Int16;
     playerAddress: Text;
     rewarded : Bool;
+    weeklyRank :Int16;
     };
 
     public type PRank = {
@@ -34,6 +36,7 @@ module {
         score: Score;
         playerAddress : Text;
         rewarded : Bool;
+        weeklyRank :Int16;
     };
 
     public type RankingResult = {
