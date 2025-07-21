@@ -19,10 +19,11 @@ namespace LoyaltyCandy.ClimateWallet
 			this.Converter = converter;
 		}
 
-		public async Task CheckAndMaybeDistributeReward()
+		public async Task<bool> CheckAndMaybeDistributeReward()
 		{
 			CandidArg arg = CandidArg.FromCandid();
-			await this.Agent.CallAsync(this.CanisterId, "checkAndMaybeDistributeReward", arg);
+			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "checkAndMaybeDistributeReward", arg);
+			return reply.ToObjects<bool>(this.Converter);
 		}
 
 		public async Task<Models.PRank> GetCurrentGlobalRanking()
@@ -91,6 +92,12 @@ namespace LoyaltyCandy.ClimateWallet
 		{
 			CandidArg arg = CandidArg.FromCandid();
 			await this.Agent.CallAsync(this.CanisterId, "resetWeeklyPlayerData", arg);
+		}
+
+		public async Task RewardClaimed(bool rewarded)
+		{
+			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(rewarded, this.Converter));
+			await this.Agent.CallAsync(this.CanisterId, "rewardClaimed", arg);
 		}
 
 		public async Task UpdatePlayerScore(uint newScore)

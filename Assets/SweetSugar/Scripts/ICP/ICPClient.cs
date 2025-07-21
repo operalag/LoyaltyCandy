@@ -42,7 +42,7 @@ namespace LoyaltyCandy {
         }
 
         private IEnumerator MonitorNetworkStatus(float timeoutSeconds = 5f) {
-            Debug.Log("Testing canister...");
+            // Debug.Log("Testing canister...");
             Task pingTask = climateClient.Ping();
             float startTime = Time.time;
 
@@ -123,6 +123,34 @@ namespace LoyaltyCandy {
             return await climateClient.ReadScore();
         }
 
+        private async Task RewardHasClaimedAsync() {
+            await climateClient.RewardClaimed(false);;
+        }
+
+        private void ClaimReward() // on Claim reward
+        {
+            StartCoroutine(RewardHasClaimedCoroutine());
+        }
+
+        public IEnumerator RewardHasClaimedCoroutine()
+        {
+            Debug.Log("Retrieving Game Data...");
+            Task rewardClaimTask = RewardHasClaimedAsync();
+
+            // Wait for the task to complete
+            while (!rewardClaimTask.IsCompleted)
+                yield return null;
+
+            if (rewardClaimTask.IsCompletedSuccessfully)
+            {
+                Debug.Log($"Reward Claimed");
+            }
+            else
+            {
+                Debug.Log($"Reward could not be claim");
+            }
+        }
+
         public IEnumerator GetPlayerScoreCoroutine(Action<uint> onScoreRetrieved)
         {
             Debug.Log("Retrieving Game Data...");
@@ -158,15 +186,26 @@ namespace LoyaltyCandy {
             GameDataShared gameData = new GameDataShared();
             string exception = "";
 
-            if (fetchTask.IsCompletedSuccessfully && fetchTask.Result != null) {
+            if (fetchTask.IsCompletedSuccessfully && fetchTask.Result != null)
+            {
                 gameData = fetchTask.Result;
-            } else {
+
+                if (gameData.Rewarded)
+                {
+                    // weekly board popup
+                }
+            }
+            else
+            {
                 Task<GameDataShared> registerTask = RegisteringPlayerAsync(playerName, isAvatarMale);
                 while (!registerTask.IsCompleted) yield return null;
 
-                if (registerTask.IsCompletedSuccessfully && registerTask.Result != null) {
+                if (registerTask.IsCompletedSuccessfully && registerTask.Result != null)
+                {
                     gameData = registerTask.Result;
-                } else {
+                }
+                else
+                {
                     exception = registerTask.Exception?.Message;
                 }
             }
@@ -174,12 +213,6 @@ namespace LoyaltyCandy {
             OnRead?.Invoke(true, gameData, exception);
         }
     
-        private async Task<string> GetCanisterAccountHex()
-        {
-            return await climateClient.GetMyCanisterBalanceTxt();
-        }
-
-
         private async Task<GameDataShared> GetGameDataAsync()
         {
             return await climateClient.GetGameData();
@@ -190,20 +223,32 @@ namespace LoyaltyCandy {
         }
 
         // ========== Weekly Reward Check ==========
-        private IEnumerator WeeklyReward() {
+        private IEnumerator WeeklyReward()
+        {
             Debug.Log("Checking for weekly reward...");
-            var task = WeeklyRewardCheckAsync();
+            Task<bool> task = WeeklyRewardCheckAsync();
             while (!task.IsCompleted) yield return null;
             Debug.Log("WeeklyReward coroutine finished.");
+
+            if (task.IsCompletedSuccessfully)
+            {
+                if (task.Result)
+                {
+                    Debug.Log("Just distributed");
+                }
+                else
+                {
+                    Debug.Log("Not Yet distributed");
+                }
+            }
+            else
+            {
+                Debug.LogError("Error getting balance: " + task.Exception);
+            }
         }
 
-        private async Task WeeklyRewardCheckAsync() {
-            try {
-                await climateClient.CheckAndMaybeDistributeReward();
-                Console.WriteLine("Weekly reward check completed.");
-            } catch (Exception ex) {
-                Console.WriteLine($" Failed to check/distribute weekly reward: {ex.Message}");
-            }
+        private async Task<bool> WeeklyRewardCheckAsync() {
+            return await climateClient.CheckAndMaybeDistributeReward();;
         }
 
         // ========== Updating Player Score ==========

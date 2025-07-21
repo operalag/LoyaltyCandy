@@ -35,7 +35,7 @@ actor LoyaltyGame {
 
   // ========== CONSTANTS ==========
   let INITIAL_CAPACITY = 16;
-  let EMPTY_RANK : PRank = {name=""; isMale=true; rank=0; score=0; playerAddress=""};
+  let EMPTY_RANK : PRank = {name=""; isMale=true; rank=0; score=0; playerAddress=""; rewarded = false};
 
   // ========== PLAYER DATA STORAGE ==========
   // Player data storage
@@ -46,8 +46,6 @@ actor LoyaltyGame {
   var weeklyPlayerData = HashMap.HashMap<Principal, GameData>(INITIAL_CAPACITY, Principal.equal, Principal.hash);
 
 
-   
-  var testDay : Nat = 2890;
 
   // ========== SYSTEM METHODS ==========
   system func preupgrade() {
@@ -93,6 +91,7 @@ actor LoyaltyGame {
         var score = 0;
         var rank = -99;
         playerAddress = userAddress;
+        rewarded = false;
         };
         playerData.put(user, newPlayer);
         recalculateRanks();
@@ -160,7 +159,12 @@ actor LoyaltyGame {
     let caller = msg.caller;
 
     let globalScore : Nat32 = Option.get(Option.map<GameData, Nat32>(playerData.get(caller),func(d: GameData) : Nat32 { d.score }), 0 : Nat32);
-    let diff = if (newScore > globalScore) newScore - globalScore else globalScore - newScore;
+      
+    if (newScore <= globalScore) {
+      return;
+    };
+
+    let diff = newScore - globalScore;
 
     let weeklyAdded = await updateWeeklyScore(caller, diff); // Step 1: Update or insert weekly score (overwrite score for this week)
 
@@ -193,7 +197,7 @@ actor LoyaltyGame {
     let diff : Nat32 = switch (weeklyPlayerData.get(user)) {
       case (?data) {
         let added = newScore;
-        data.score := newScore; // Replace for weekly
+        data.score += newScore; // Replace for weekly
         added
       };
       case null {
@@ -204,6 +208,7 @@ actor LoyaltyGame {
           var score = newScore;
           var rank = -99;
           playerAddress = address;
+          rewarded = false;
         };
         weeklyPlayerData.put(user, newData);
         newScore;
@@ -283,6 +288,7 @@ actor LoyaltyGame {
           score = data.score;
           rank = data.rank;
           playerAddress = data.playerAddress;
+          rewarded = data.rewarded;
         };
       };
       case null {
@@ -311,6 +317,7 @@ actor LoyaltyGame {
           score = data.score;
           rank = data.rank;
           playerAddress = data.playerAddress;
+          rewarded = data.rewarded;
         };
       };
       case null {
@@ -347,6 +354,7 @@ actor LoyaltyGame {
         score = g.score;
         rank = g.rank;
         playerAddress = g.playerAddress;
+        rewarded = g.rewarded;
       }
     };
 
@@ -390,6 +398,7 @@ actor LoyaltyGame {
         score = g.score;
         rank = g.rank;
         playerAddress = g.playerAddress;
+        rewarded = g.rewarded;
       }
     };
 
@@ -417,31 +426,29 @@ actor LoyaltyGame {
     return latestSundayDayIndex; // Always positive Nat
   };
 
-  public shared func checkAndMaybeDistributeReward() : async () {
+  public shared func checkAndMaybeDistributeReward() : async Bool {
     let sundayId = getLatestSundayIdFromNow();
-
     if (not isWeeklyCompetitionRunning) {
       isWeeklyCompetitionRunning := true;
       lastRewardedSundayId := sundayId;
 
-      // testDay := sundayId; //for testing
-
       Debug.print("Competition started on Sunday ID: " # Nat.toText(sundayId));
-      return;
+      return false;
     }
     else
     {
-      if (sundayId > testDay) {
-      // if (sundayId > lastRewardedSundayId) {
+      if (sundayId > lastRewardedSundayId) {
         Debug.print("Distributing reward for new week. Sunday ID: " # Nat.toText(sundayId));
-
         await rewardTop10(rewardAmount); //rewaring top 10 player
 
         lastRewardedSundayId := sundayId;
+
         await resetWeeklyPlayerData();
         Debug.print("Reward given and marked for Sunday ID: " # Nat.toText(sundayId));
+        return true;
       } else {
-        Debug.print("Reward already distributed for the latest Sunday or Wait till next sunda.");
+        Debug.print("Reward already distributed for the latest Sunday or Wait till next sunday.");
+        return false;
       };
     };
   };
@@ -477,15 +484,46 @@ actor LoyaltyGame {
 
   func rewardTop10(amountPerPlayerE8s: Nat) : async () {
     let topPlayers = await getTopRankingWithPrincipal();
+
     for (player in topPlayers.vals()) {
       Debug.print("Sending to: " # player.data.name);
       try {
         let blockIndex = await sendIcp(player.principal, amountPerPlayerE8s);
         Debug.print("Sent to " # player.data.name # " | Block: " # Nat.toText(blockIndex));
+
+        // Call internal version directly
+        markRewarded(player.principal, true);
+
       } catch (e) {
         Debug.print("Failed for " # player.data.name # ": " # Error.message(e));
       };
     };
+  };
+
+  // Internal version (can be called from within the canister)
+  func markRewarded(player: Principal, rewarded: Bool) {
+    switch (playerData.get(player)) {
+      case (?data) {
+        let updatedData : GameData = {
+          name = data.name;
+          isMale = data.isMale;
+          var score = data.score;
+          var rank = data.rank;
+          playerAddress = data.playerAddress;
+          rewarded = rewarded;
+        };
+        playerData.put(player, updatedData);
+      };
+      case null {};
+    };
+  };
+
+  // Public shared version (for external calls)
+  public shared(msg) func rewardClaimed(rewarded: Bool) : async () {
+    if (Principal.isAnonymous(msg.caller)) {
+      throw Error.reject("Anonymous access not allowed.");
+    };
+    markRewarded(msg.caller, rewarded);
   };
 
   // Balance in e8s (1 ICP = 100 000 000 e8s)
@@ -528,6 +566,7 @@ actor LoyaltyGame {
       score = data.score;
       rank = data.rank;
       playerAddress = data.playerAddress;
+      rewarded = data.rewarded;
     }
   };
 
@@ -624,7 +663,7 @@ actor LoyaltyGame {
   {
     switch (rank) 
     {
-      case (?rank) return {name = rank.name; isMale = rank.isMale; rank = rank.rank; score = rank.score; playerAddress = rank.playerAddress};
+      case (?rank) return {name = rank.name; isMale = rank.isMale; rank = rank.rank; score = rank.score; playerAddress = rank.playerAddress; rewarded = rank.rewarded};
       case (null) return EMPTY_RANK;
     };
   };

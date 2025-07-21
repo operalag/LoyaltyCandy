@@ -19,15 +19,19 @@ namespace LoyaltyCandy.ClimateWallet.Models
 		[CandidName("rank")]
 		public Rank Rank { get; set; }
 
+		[CandidName("rewarded")]
+		public bool Rewarded { get; set; }
+
 		[CandidName("score")]
 		public Score Score { get; set; }
 
-		public PRank(bool isMale, PlayerName name, string playerAddress, Rank rank, Score score)
+		public PRank(bool isMale, PlayerName name, string playerAddress, Rank rank, bool rewarded, Score score)
 		{
 			this.IsMale = isMale;
 			this.Name = name;
 			this.PlayerAddress = playerAddress;
 			this.Rank = rank;
+			this.Rewarded = rewarded;
 			this.Score = score;
 		}
 

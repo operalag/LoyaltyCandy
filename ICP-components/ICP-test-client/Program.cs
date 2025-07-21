@@ -8,7 +8,7 @@ using LoyaltyCandy.ClimateWallet.Models;
 IIClientWrapper iiClient = new IIClientWrapper();
 
 // IIUser user = iiClient.Register();
-IIUser user = new IIUser(10004L);
+IIUser user = new IIUser(10006L);
 
 Ed25519Identity identity = iiClient.data.LoadIdentity(user.UserNumber);
 iiClient.SetupAgentWithIdentity(identity); // Use original registered key
@@ -23,7 +23,7 @@ Principal ledgerCanisterId = Principal.FromText("ryjl3-tyaaa-aaaaa-aaaba-cai");
 NNSLedgerApiClient ledgerClient = new NNSLedgerApiClient(iiClient.DelegateAgent, ledgerCanisterId);
 
 //login to custom canister
-Principal climateWalletPrincipal = Principal.FromText("bkyz2-fmaaa-aaaaa-qaaaq-cai");
+Principal climateWalletPrincipal = Principal.FromText("uxrrr-q7777-77774-qaaaq-cai");
 ClimateWalletApiClient climateClient = new ClimateWalletApiClient(iiClient.DelegateAgent, climateWalletPrincipal);
 
 //Sender Account
@@ -54,14 +54,16 @@ Tokens receiverBalance = await ledgerClient.AccountBalance(new AccountBalanceArg
 // Console.WriteLine($"Receiver Balance: {receiverBalance.E8s / 100_000_000} ICP");
 
 var val = climateClient.RegisterPlayer($"Player{user.UserNumber}", true); // Add player to the game
-var score = climateClient.UpdatePlayerScore((uint)user.UserNumber + 60); //update Score
+var score = climateClient.UpdatePlayerScore((uint)user.UserNumber + 7); //update Score
 
 var readResult = await climateClient.GetGameData();  // Get current user's data
 var userScore = await climateClient.ReadScore();
 Console.WriteLine($"user Score: {userScore}");
-// await climateClient.CheckAndMaybeDistributeReward();
+await climateClient.CheckAndMaybeDistributeReward();
 
-Console.WriteLine($"Name: {readResult.Name}, IsMale: {readResult.IsMale}, Rank: {readResult.Rank}, Score: {readResult.Score},");
+await climateClient.RewardClaimed(false);
+
+Console.WriteLine($"Name: {readResult.Name}, IsMale: {readResult.IsMale}, Rank: {readResult.Rank}, Score: {readResult.Score}, Rewarded: {readResult.Rewarded}");
 Console.WriteLine($"user Account Address hex: {readResult.PlayerAddress}");
 
 Tester tester = new Tester(climateClient);
