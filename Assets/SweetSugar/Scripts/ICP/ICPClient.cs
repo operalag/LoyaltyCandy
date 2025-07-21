@@ -30,9 +30,12 @@ namespace LoyaltyCandy {
         private int gameBalance;
         private bool isChecking;
         private bool appliedOfflineGem = false;
+        [SerializeField] private WeeklyRankingRewardManager weeklyRankingRewardManager;
+
 
         // ========== Initialization ==========
-        internal void Connect(IAgent agent) {
+        internal void Connect(IAgent agent)
+        {
             climateClient = new ClimateWalletApiClient(agent, Config.CanisterPrincipal);
             CheckPlayerData();
             OnICPClientReady?.Invoke();
@@ -71,7 +74,7 @@ namespace LoyaltyCandy {
                     Debug.Log("Score received in callback: " + score);
                     // Do something with score
                 }));
-
+            
                 // gameBalance = getScoreTask.Result;
                 SetLastKnownBalance(gameBalance);
 
@@ -192,8 +195,18 @@ namespace LoyaltyCandy {
 
                 if (gameData.Rewarded)
                 {
+                    int userRank = 0;
+                    StartCoroutine(RankingForReward((rank) =>
+                    {
+                        userRank = rank;
+                        Debug.Log("rank received in callback: " + rank);
+                    }));
                     // weekly board popup
+                    weeklyRankingRewardManager.ShowWeeklyRewardPanel(userRank, 100);
+
                 }
+                
+                Debug.Log("user rank: " + gameData.Rewarded);
             }
             else
             {
@@ -296,7 +309,33 @@ namespace LoyaltyCandy {
             StartCoroutine(ExecuteCurrentRankRead());
         }
 
-        private IEnumerator ExecuteCurrentRankRead() {
+
+        public IEnumerator RankingForReward(Action<int> onRankRetrieved)
+        {
+            Debug.Log("Retrieving Reward...");
+            Task<PRank> task = climateClient.GetCurrentWeeklyRanking();
+
+            // Wait for the task to complete
+            while (!task.IsCompleted)
+                yield return null;
+
+            if (task.IsCompletedSuccessfully)
+            {
+                int rank = task.Result.Rank;
+                Debug.Log($"Game score retrieved: Score: {rank}");
+                onRankRetrieved?.Invoke(rank);
+            }
+            else
+            {
+                Debug.LogError("Failed to retrieve score.");
+                onRankRetrieved?.Invoke(0); // or handle error
+            }
+        }
+
+        
+
+        private IEnumerator ExecuteCurrentRankRead()
+        {
             Task<PRank> task = climateClient.GetCurrentGlobalRanking();
             while (!task.IsCompleted) yield return new WaitForEndOfFrame();
             OnRankUpdated?.Invoke(true, task.Result, null);
