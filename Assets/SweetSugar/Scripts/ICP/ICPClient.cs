@@ -353,6 +353,7 @@ namespace LoyaltyCandy
 
         public IEnumerator GetCanisterAddressHexCoroutine()
         {
+            Debug.Log($"Retriving Climate Account ID (Hex)... ");
             Task<string> addressRetrieveTask = GetCanisterAddressHexAsync();
 
             while (!addressRetrieveTask.IsCompleted)
