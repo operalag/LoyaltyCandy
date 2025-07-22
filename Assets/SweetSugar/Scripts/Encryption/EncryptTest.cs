@@ -22,13 +22,13 @@ public class EncryptTest : MonoBehaviour
 
         if(Input.GetKeyDown(KeyCode.Return))
         {
-            Encryptor.SaveCoins(val);
+            Encryptor.Save(val);
         }
 
         if(Input.GetKeyDown(KeyCode.L))
         {
             int val;
-            val = Encryptor.LoadCoins<int>();
+            val = Encryptor.Load<int>();
 
             Debug.Log($"Loaded data: {val}" );
         }

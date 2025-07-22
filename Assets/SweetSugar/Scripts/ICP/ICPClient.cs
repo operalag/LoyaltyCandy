@@ -122,18 +122,18 @@ namespace LoyaltyCandy
             int currentGems = PlayerPrefs.GetInt("Gems", 0);
             int lastKnownOnlineGem = GetLastKnownGemBalance();
             int offlineGem = currentGems - lastKnownOnlineGem;
-            Encryptor.SaveCoins(offlineGem);
+            Encryptor.Save(offlineGem);
         }
 
         private void ApplyOfflineGem()
         {
-            int offlineGems = Encryptor.LoadCoins<int>();
+            int offlineGems = Encryptor.Load<int>();
             if (offlineGems != 0)
             {
                 int lastKnownGem = PlayerPrefs.GetInt("LastKnownOnlineGemBalance", 0);
                 int newGemBalance = offlineGems + lastKnownGem;
                 SaveCoins(newGemBalance);
-                Encryptor.SaveCoins(0);
+                Encryptor.Save(0);
                 appliedOfflineGem = true;
             }
         }

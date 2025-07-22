@@ -137,7 +137,7 @@ namespace GemEncryption
             }
         }
 
-        public static void SaveCoins<T>(T data, string key = "default")
+        public static void Save<T>(T data, string key = "default")
         {
             try
             {
@@ -151,20 +151,14 @@ namespace GemEncryption
                 string path = GetPath(key);
                 File.WriteAllBytes(path, bytes);
 
-                    // for player prefabs
-                // string base64Data = Convert.ToBase64String(bytes);
-                // PlayerPrefs.SetString("Gemss", base64Data);
-                // PlayerPrefs.Save();
-
-
             }
             catch (Exception e)
             {
-                Debug.LogError($"SaveCoins error: {e.Message}");
+                Debug.LogError($"Save error: {e.Message}");
             }
         }
 
-        public static T LoadCoins<T>(string key = "default")
+        public static T Load<T>(string key = "default")
         {
             try
             {
@@ -172,16 +166,10 @@ namespace GemEncryption
                 if (!File.Exists(path)) return default;
                 byte[] fileBytes = File.ReadAllBytes(path);
                 return Decrypt<T>(fileBytes) ;
-
-                //for player prefabs
-                // if(!PlayerPrefs.HasKey("Gemss")) return default;
-                // string base64Data = PlayerPrefs.GetString("Gemss");
-                // byte[] encryptedBytes = Convert.FromBase64String(base64Data);
-                // return Decrypt<T>(encryptedBytes);
             }
             catch (Exception e)
             {
-                Debug.LogError($"LoadCoins error: {e.Message}");
+                Debug.LogError($"Load error: {e.Message}");
                 return default;
             }
         }

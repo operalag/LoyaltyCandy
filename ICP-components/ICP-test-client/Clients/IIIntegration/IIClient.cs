@@ -10,7 +10,7 @@ using LoyaltyCandy.InternetIdentity.Models;
 class SetupData
 {
     private Ed25519Identity identity;
-    
+    public string networkURL = "http://localhost:8080";
 
     internal Ed25519Identity GenerateOrGetDeviceKey()
     {
@@ -58,10 +58,10 @@ public class IIClientWrapper
     private HttpAgent Agent { get; set; }
     // internal DeviceData deviceData;
 
-    public IIClientWrapper(string networkURL = "http://localhost:8080", string iiCanisterId = "qhbym-qaaaa-aaaaa-aaafq-cai")
+    public IIClientWrapper( string iiCanisterId = "qhbym-qaaaa-aaaaa-aaafq-cai")
     {
         this.CanisterPrincipal = Principal.FromText(iiCanisterId);
-        this.hostAddress = networkURL;
+        this.hostAddress = data.networkURL;
 
         // Temporary agent for registration
         Ed25519Identity tempIdentity = data.GenerateOrGetDeviceKey();

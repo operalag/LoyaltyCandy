@@ -6,7 +6,7 @@ using EdjCase.ICP.Agent.Identities;
 
 string hostname = "http://localhost:8080";
 
-IIClientWrapper iiClient = new IIClientWrapper(hostname);
+IIClientWrapper iiClient = new IIClientWrapper();
 
 IIUser user = iiClient.Register();
 // IIUser user = new IIUser(10004L);
