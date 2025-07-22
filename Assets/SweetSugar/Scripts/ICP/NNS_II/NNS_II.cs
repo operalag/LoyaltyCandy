@@ -35,7 +35,8 @@ public class NNS_II : MonoBehaviour
             {
                 Debug.Log($"Registered user: {user.UserNumber} registered");
                 LoginUser(user.UserNumber);
-                registerButton.enabled = false;
+                registerButton.gameObject.SetActive(false);
+
             },
             onError: (err) => Debug.LogError("Registration failed: " + err.Message)
         ));
