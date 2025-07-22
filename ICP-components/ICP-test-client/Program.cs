@@ -3,12 +3,13 @@ using LoyaltyCandy.ClimateWallet;
 using LoyaltyCandy.NNSLedger;
 using LoyaltyCandy.NNSLedger.Models;
 using EdjCase.ICP.Agent.Identities;
-using LoyaltyCandy.ClimateWallet.Models;
 
-IIClientWrapper iiClient = new IIClientWrapper();
+string hostname = "http://localhost:8080";
 
-// IIUser user = iiClient.Register();
-IIUser user = new IIUser(10004L);
+IIClientWrapper iiClient = new IIClientWrapper(hostname);
+
+IIUser user = iiClient.Register();
+// IIUser user = new IIUser(10004L);
 
 Ed25519Identity identity = iiClient.data.LoadIdentity(user.UserNumber);
 iiClient.SetupAgentWithIdentity(identity); // Use original registered key

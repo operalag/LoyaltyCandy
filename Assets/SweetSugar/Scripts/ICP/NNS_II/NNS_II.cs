@@ -6,6 +6,8 @@ using EdjCase.ICP.Agent.Identities;
 
 public class NNS_II : MonoBehaviour
 {
+    [SerializeField] private ICPCanisterConfig configuration;
+    public ICPCanisterConfig Config => configuration;
     [SerializeField] private int userID;
     internal ulong icpBalance { get; private set; }
     private IIClientWrapper iiClient;
@@ -14,10 +16,11 @@ public class NNS_II : MonoBehaviour
 
     [SerializeField] private ICPClient iCPClient;
 
+
     // Start is called before the first frame update
     void Start()
     {
-        iiClient = new IIClientWrapper();
+        iiClient = new IIClientWrapper(Config.NetowrkUrl);
         LoginUser((ulong)userID);
     }
 
@@ -33,7 +36,6 @@ public class NNS_II : MonoBehaviour
                 Debug.Log($"Registered user: {user.UserNumber} registered");
                 LoginUser(user.UserNumber);
                 registerButton.enabled = false;
-
             },
             onError: (err) => Debug.LogError("Registration failed: " + err.Message)
         ));
@@ -53,7 +55,7 @@ public class NNS_II : MonoBehaviour
             onComplete: () =>
             {
                 Debug.Log("Login successful");
-                iCPClient.Connect(iiClient.DelegateAgent);
+                iCPClient.Connect(iiClient.DelegateAgent, Config.CanisterPrincipal);
             },
             onError: (err) =>
             {

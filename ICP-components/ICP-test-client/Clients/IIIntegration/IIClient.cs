@@ -10,7 +10,7 @@ using LoyaltyCandy.InternetIdentity.Models;
 class SetupData
 {
     private Ed25519Identity identity;
-    public string FrontendHostname { get { return "http://localhost:8080"; } set { } }
+    
 
     internal Ed25519Identity GenerateOrGetDeviceKey()
     {
@@ -58,10 +58,10 @@ public class IIClientWrapper
     private HttpAgent Agent { get; set; }
     // internal DeviceData deviceData;
 
-    public IIClientWrapper(string iiCanisterId = "qhbym-qaaaa-aaaaa-aaafq-cai")
+    public IIClientWrapper(string networkURL = "http://localhost:8080", string iiCanisterId = "qhbym-qaaaa-aaaaa-aaafq-cai")
     {
         this.CanisterPrincipal = Principal.FromText(iiCanisterId);
-        this.hostAddress = data.FrontendHostname;
+        this.hostAddress = networkURL;
 
         // Temporary agent for registration
         Ed25519Identity tempIdentity = data.GenerateOrGetDeviceKey();
@@ -127,8 +127,8 @@ public class IIClientWrapper
         Ed25519Identity sessionKey = Ed25519Identity.Generate();
         List<byte> sessionPubKey = sessionKey.PublicKey.ToDerEncoding().ToList();
 
-        (List<byte> ReturnArg0, ulong ReturnArg1) prep = IIClient.PrepareDelegation(user.UserNumber, data.FrontendHostname, sessionPubKey, OptionalValue<ulong>.NoValue()).Result;
-        GetDelegationResponse delegationResponse = IIClient.GetDelegation(user.UserNumber, data.FrontendHostname, sessionPubKey, prep.ReturnArg1).Result;
+        (List<byte> ReturnArg0, ulong ReturnArg1) prep = IIClient.PrepareDelegation(user.UserNumber, hostAddress, sessionPubKey, OptionalValue<ulong>.NoValue()).Result;
+        GetDelegationResponse delegationResponse = IIClient.GetDelegation(user.UserNumber, hostAddress, sessionPubKey, prep.ReturnArg1).Result;
 
         SubjectPublicKeyInfo pubKeyInfo = new SubjectPublicKeyInfo(AlgorithmIdentifier.Ed25519(), prep.ReturnArg0.ToArray());
         ICTimestamp expiration = new ICTimestamp(UnboundedUInt.FromUInt64(prep.ReturnArg1));
@@ -143,7 +143,7 @@ public class IIClientWrapper
         );
         Ed25519Identity identity = data.LoadIdentity(user.UserNumber);
         DelegationIdentity delegatedIdentity = new DelegationIdentity(identity, chain);
-        DelegateAgent = new HttpAgent(delegatedIdentity.Identity, new Uri(data.FrontendHostname));
+        DelegateAgent = new HttpAgent(delegatedIdentity.Identity, new Uri(hostAddress));
     }
 }
 

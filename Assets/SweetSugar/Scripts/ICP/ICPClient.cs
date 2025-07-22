@@ -7,6 +7,7 @@ using LoyaltyCandy.ClimateWallet;
 using LoyaltyCandy.ClimateWallet.Models;
 using UnityEngine;
 using GemEncryption;
+using EdjCase.ICP.Candid.Models;
 
 namespace LoyaltyCandy
 {
@@ -39,9 +40,6 @@ namespace LoyaltyCandy
 
         #region Configuration & State
 
-        [SerializeField] private ICPCanisterConfig configuration;
-        public ICPCanisterConfig Config => configuration;
-
         internal ClimateWalletApiClient climateClient;
         [SerializeField] private WeeklyRankingRewardManager weeklyRankingRewardManager;
 
@@ -54,9 +52,9 @@ namespace LoyaltyCandy
 
         #region Initialization & Connection
 
-        internal void Connect(IAgent agent)
+        internal void Connect(IAgent agent, Principal canisterId)
         {
-            climateClient = new ClimateWalletApiClient(agent, Config.CanisterPrincipal);
+            climateClient = new ClimateWalletApiClient(agent, canisterId);
 
             // Show canister address on connect
             StartCoroutine(GetCanisterAddressHexCoroutine());

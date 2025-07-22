@@ -40,10 +40,10 @@ namespace LoyaltyCandy  {
 
     [Serializable]
     public class ICPCanisterConfig {
-
-        [SerializeField]
-        private string canisterId = "";
+        [SerializeField] private string netowrkUrl = "http://localhost:8080";
+        [SerializeField] private string canisterId = "";
         private Principal principal;
-        public Principal CanisterPrincipal {get { if (principal == null) principal = Principal.FromText(this.canisterId); return principal;} set {}}
+        public string NetowrkUrl {get { return netowrkUrl; } set {}}
+        public Principal CanisterPrincipal { get { if (principal == null) principal = Principal.FromText(this.canisterId); return principal; } set { } }
     }
 }

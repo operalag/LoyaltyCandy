@@ -16,6 +16,7 @@ using System.Collections;
 using LoyaltyCandy.NNSLedger;
 using LoyaltyCandy.NNSLedger.Models;
 
+
 class SetupData
 {
     private Ed25519Identity identity;
@@ -67,12 +68,12 @@ public class IIClientWrapper
     internal SetupData data = new SetupData();
     private HttpAgent Agent { get; set; }
 
-    public IIClientWrapper(string iiCanisterId = "qhbym-qaaaa-aaaaa-aaafq-cai", string ledgerCanisterId = "ryjl3-tyaaa-aaaaa-aaaba-cai")
+    public IIClientWrapper(string netowrkUrl = "http://localhost:8080", string iiCanisterId = "qhbym-qaaaa-aaaaa-aaafq-cai", string ledgerCanisterId = "ryjl3-tyaaa-aaaaa-aaaba-cai")
     {
         this.IICanisterPrincipal = Principal.FromText(iiCanisterId);
         this.LedgerCanisterPrincipal = Principal.FromText(ledgerCanisterId);
 
-        this.hostAddress = data.FrontendHostname;
+        this.hostAddress = netowrkUrl;
 
         // Temporary agent for registration
         Ed25519Identity tempIdentity = data.GenerateOrGetDeviceKey();
