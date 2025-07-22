@@ -9,8 +9,6 @@ using UnityEngine.UI;
 
 public class WeeklyRankingRewardManager : MonoBehaviour
 {
-    private ICPClient icpClient;
-    private PRank currentRank;
     [Header("UI Elements")]
     public GameObject WeeklyrewardPanel;
     public TextMeshProUGUI rankText;
@@ -35,5 +33,7 @@ public class WeeklyRankingRewardManager : MonoBehaviour
     {
         WeeklyrewardPanel?.SetActive(false);
         Debug.Log("Reward panel closed by player.");
+        ICPClient icpClient = FindObjectOfType<ICPClient>();
+        icpClient.ClaimReward();
     }
 }
