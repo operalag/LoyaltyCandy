@@ -23,6 +23,7 @@ using SweetSugar.Scripts.Integrations.Network;
 using SweetSugar.Scripts.Level;
 using SweetSugar.Scripts.MapScripts;
 using SweetSugar.Scripts.System;
+using UnityEditor.PackageManager;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -191,10 +192,9 @@ namespace SweetSugar.Scripts.Core
             // Gems are set via the Counter_.cs script. Not ideal but we will work with it for now
             // The counter script constantly updates the text based on a Timer
             // and reads from the PlayerPrefs value
+            GameDataShared gameData = result as GameDataShared;
 
-            GameDataShared gameData = (GameDataShared) result;
-
-            if (result == null)
+            if (gameData == null)
             {
                 return;
             }

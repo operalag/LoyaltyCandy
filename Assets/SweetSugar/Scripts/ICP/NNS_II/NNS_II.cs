@@ -28,7 +28,7 @@ public class NNS_II : MonoBehaviour
     void Start()
     {
         iiClient = new IIClientWrapper(Config.NetowrkUrl);
-        // CheckUserNumber();
+        CheckUserNumber();
         LoginUser(userNumber);
     }
 
