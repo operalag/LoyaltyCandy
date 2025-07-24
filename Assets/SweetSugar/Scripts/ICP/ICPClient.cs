@@ -166,8 +166,6 @@ namespace LoyaltyCandy
             StartCoroutine(UpdatingPlayerScoreCoroutine(coins));
         }
 
-        
-
         public IEnumerator GetPlayerScoreCoroutine(Action<uint> onScoreRetrieved)
         {
             Debug.Log("Retrieving score...");
@@ -308,6 +306,7 @@ namespace LoyaltyCandy
                 else
                     exception = registerTask.Exception?.Message;
             }
+            // Debug.Log("rank received in callback: " + result.weeklyRank);
             gameDataCheckUp = null;
             OnRead?.Invoke(true, gameData, exception);
         }
