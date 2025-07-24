@@ -1,13 +1,14 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using LoyaltyCandy;
 using TMPro;
 using UnityEngine;
 
 public class ICPGetToken : MonoBehaviour
 {
     [SerializeField] private TextMeshProUGUI gemText;
-    [SerializeField] private NNS_II nNS_II;
+    [SerializeField] private ICPClient iCPClient;
 
     // Start is called before the first frame update
     void Start()
@@ -23,6 +24,6 @@ public class ICPGetToken : MonoBehaviour
 
     private void InspectICPBalance()
     {
-        gemText.text = nNS_II.icpBalance.ToString();
+        gemText.text = iCPClient.icpBalance;
     }
 }

@@ -20,7 +20,7 @@ public class NNS_II : MonoBehaviour
 
     private IIClientWrapper iiClient;
     private Coroutine registerCoroutine;
-    public ulong icpBalance { get; private set; }
+    
     private ulong userNumber;
 
 
@@ -80,21 +80,6 @@ public class NNS_II : MonoBehaviour
                 registerButton.gameObject.SetActive(true);
             }
         ));
-    }
-
-    public Task GetICPBalance()
-    {
-        StartCoroutine(iiClient.ICPBalanceCoroutine(
-        onComplete: (balanceCheck) =>
-        {
-            icpBalance = balanceCheck.ICPBalance;
-
-            Debug.Log("Your Account Identifier (hex): " + balanceCheck.AccountIDHex);
-            Debug.Log($"Updated Balance: {balanceCheck.ICPBalance} ICP");
-        },
-        onError: (err) => Debug.LogError("Balance Check failed: " + err.Message)
-        ));
-        return Task.CompletedTask;
     }
 
     private void CheckUserNumber()

@@ -155,7 +155,6 @@ public class IIClientWrapper
 
         // Use delegation to create DelegationIdentity
         DelegationIdentity delegateIdentity = new DelegationIdentity(data.LoadIdentity(user.UserNumber), chain);
-        Debug.Log("Setting up agent " + data.networkUrl);
         DelegateAgent = new HttpAgent(delegateIdentity.Identity, new Uri(data.networkUrl));
     }
 

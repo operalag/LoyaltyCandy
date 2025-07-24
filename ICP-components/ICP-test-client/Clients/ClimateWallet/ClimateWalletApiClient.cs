@@ -61,6 +61,13 @@ namespace LoyaltyCandy.ClimateWallet
 			return reply.ToObjects<Models.RankingResult>(this.Converter);
 		}
 
+		public async Task<string> GetMyBalanceTxt()
+		{
+			CandidArg arg = CandidArg.FromCandid();
+			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "getMyBalanceTxt", arg);
+			return reply.ToObjects<string>(this.Converter);
+		}
+
 		public async Task<string> GetMyCanisterBalanceTxt()
 		{
 			CandidArg arg = CandidArg.FromCandid();

@@ -3,8 +3,6 @@ using EdjCase.ICP.Candid.Models;
 using EdjCase.ICP.Candid;
 using System.Threading.Tasks;
 using LoyaltyCandy.ClimateWallet;
-// using System.Diagnostics;
-using UnityEngine;
 
 namespace LoyaltyCandy.ClimateWallet
 {
@@ -61,6 +59,13 @@ namespace LoyaltyCandy.ClimateWallet
 			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(before, this.Converter), CandidTypedValue.FromObject(after, this.Converter), CandidTypedValue.FromObject(rank, this.Converter));
 			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "getGlobalRanking", arg);
 			return reply.ToObjects<Models.RankingResult>(this.Converter);
+		}
+
+		public async Task<string> GetMyBalanceTxt()
+		{
+			CandidArg arg = CandidArg.FromCandid();
+			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "getMyBalanceTxt", arg);
+			return reply.ToObjects<string>(this.Converter);
 		}
 
 		public async Task<string> GetMyCanisterBalanceTxt()

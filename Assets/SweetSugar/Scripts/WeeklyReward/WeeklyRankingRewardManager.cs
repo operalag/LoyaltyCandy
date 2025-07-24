@@ -31,7 +31,7 @@ public class WeeklyRankingRewardManager : MonoBehaviour
 
     private void OnClaimClicked()
     {
-        WeeklyrewardPanel?.SetActive(false);
+        if (WeeklyrewardPanel != null) WeeklyrewardPanel.SetActive(false);
         Debug.Log("Reward panel closed by player.");
         ICPClient icpClient = FindObjectOfType<ICPClient>();
         icpClient.ClaimReward();

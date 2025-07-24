@@ -468,7 +468,8 @@ actor LoyaltyGame {
     }
     else
     {
-      if (sundayId > lastRewardedSundayId) {
+      // if (sundayId > lastRewardedSundayId) {
+      if(true){
         Debug.print("Distributing reward for new week. Sunday ID: " # Nat.toText(sundayId));
         await rewardTop10(rewardAmount); //rewaring top 10 player
 
@@ -608,11 +609,23 @@ actor LoyaltyGame {
     };
   };
   
+  public shared(msg) func getMyBalanceTxt() : async Text {
+    let caller = msg.caller;
 
-  // Balance in e8s (1 ICP = 100 000 000 e8s)
-  func getMyCanisterBalance() : async Nat {
+    if (Principal.isAnonymous(caller)) {
+      throw Error.reject("Anonymous access not allowed.");
+    };
+    
+    let e8s : Nat = await getMyBalance(caller);
+    let result = formatE8sToIcpText(e8s);
+    Debug.print(result);
+    return result;
+  };
+
+
+  func getMyBalance(principalId : Principal) : async Nat {
     let account : Account = {
-      owner      = Principal.fromActor(LoyaltyGame);
+      owner      = principalId;
       subaccount = null;
     };
 
@@ -622,13 +635,20 @@ actor LoyaltyGame {
 
   public shared func getMyCanisterBalanceTxt() : async Text {
     let e8s : Nat = await getMyCanisterBalance();
-    let whole      = e8s / 100_000_000;
-    let fractional = e8s % 100_000_000;
-    // pad the fractional part to 8 digits
-    let fracTxt  = Nat.toText(fractional);
-    let padded   = repeatChar("0", 8 - fracTxt.size()) # fracTxt;
-    Debug.print(Nat.toText(whole) # "." # padded # " ICP" );
-    Nat.toText(whole) # "." # padded # " ICP"
+    let result = formatE8sToIcpText(e8s);
+    Debug.print(result);
+    return result;
+  };
+
+    // Balance in e8s (1 ICP = 100 000 000 e8s)
+  func getMyCanisterBalance() : async Nat {
+    let account : Account = {
+      owner      = Principal.fromActor(LoyaltyGame);
+      subaccount = null;
+    };
+
+    // This awaits the remote ledger call and returns the Nat result.
+    await ledger.icrc1_balance_of(account);
   };
 
   func getAccountAddress(userPrincipal: Principal) : async Text {
@@ -686,6 +706,22 @@ actor LoyaltyGame {
       i += 1;
     };
     result
+  };
+
+  func formatE8sToIcpText(e8s: Nat) : Text {
+    let whole      = e8s / 100_000_000;
+    let fractional = (e8s % 100_000_000) / 1_000_000;
+
+    let fractionalText = Nat.toText(fractional);
+    let paddedFraction = if (fractionalText.size() == 1) {
+    "0" # fractionalText
+    } else {
+      fractionalText
+    };
+
+    let result = Nat.toText(whole) # "." # paddedFraction # " ICP";
+    Debug.print(result);
+    return result;
   };
 
   // ========== TRANSFER TOKEN ==========

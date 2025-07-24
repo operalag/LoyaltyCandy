@@ -40,10 +40,15 @@ namespace LoyaltyCandy
 
         #region Configuration & State
 
+
         internal ClimateWalletApiClient climateClient;
         [SerializeField] private WeeklyRankingRewardManager weeklyRankingRewardManager;
 
+        public string icpBalance { get; private set; }
+
         private Coroutine networkMonitorCoroutine;
+        private Coroutine gameDataCheckUp;
+        private Coroutine weeklyRewardCheckUp;
         private int gameBalance;
         private bool isChecking;
         private bool appliedOfflineGem = false;
@@ -97,10 +102,11 @@ namespace LoyaltyCandy
                 ApplyOfflineGem();
                 yield return new WaitUntil(() => !isChecking);
 
+                StartCoroutine(GetICPBalanceCoroutine());
                 StartCoroutine(GetPlayerScoreCoroutine(score =>
                 {
                     gameBalance = (int)score;
-                    Debug.Log("Score received in callback: " + score);
+                    // Debug.Log("Score received in callback: " + score);
                 }));
 
                 SetLastKnownBalance(gameBalance);
@@ -159,6 +165,8 @@ namespace LoyaltyCandy
             StartCoroutine(UpdatingPlayerScoreCoroutine(coins));
         }
 
+        
+
         public IEnumerator GetPlayerScoreCoroutine(Action<uint> onScoreRetrieved)
         {
             Debug.Log("Retrieving score...");
@@ -170,7 +178,7 @@ namespace LoyaltyCandy
             if (fetchScoreTask.IsCompletedSuccessfully)
             {
                 uint score = fetchScoreTask.Result;
-                Debug.Log($"Game score retrieved: {score}");
+                // Debug.Log($"Game score retrieved: {score}");
                 onScoreRetrieved?.Invoke(score);
             }
             else
@@ -178,6 +186,28 @@ namespace LoyaltyCandy
                 Debug.LogError("Failed to retrieve score.");
                 onScoreRetrieved?.Invoke(0);
             }
+        }
+
+        public IEnumerator GetICPBalanceCoroutine()
+        {
+            Debug.Log("Getting token amount");
+
+            Task<string> fetchICPTokenTask = GetICPBalanceAsync();
+            while (!fetchICPTokenTask.IsCompleted) yield return null;
+
+            if (fetchICPTokenTask.IsCompletedSuccessfully)
+            {
+                icpBalance = fetchICPTokenTask.Result;
+            }
+            else
+            {
+                Debug.LogError("Failed to retrieve icpBalance.");
+            }
+        }
+
+        private async Task<string> GetICPBalanceAsync()
+        {
+            return await climateClient.GetMyBalanceTxt();
         }
 
         private async Task<uint> GetPlayerScoreAsync()
@@ -237,8 +267,8 @@ namespace LoyaltyCandy
 
         public void CheckPlayerData()
         {
-            StartCoroutine(GetOrRegisterGameDataCoroutine());
-            StartCoroutine(WeeklyReward());
+            if(gameDataCheckUp == null) gameDataCheckUp = StartCoroutine(GetOrRegisterGameDataCoroutine());
+            if(weeklyRewardCheckUp == null) weeklyRewardCheckUp = StartCoroutine(WeeklyReward());
         }
 
         public IEnumerator GetOrRegisterGameDataCoroutine(string playerName = "Player", bool isAvatarMale = true)
@@ -264,6 +294,8 @@ namespace LoyaltyCandy
                         weeklyRankingRewardManager.ShowWeeklyRewardPanel(result.weeklyRank, result.rewardAmount);
                     }));
                 }
+
+                Debug.Log("user data" + gameData.Rewarded);
             }
             else
             {
@@ -275,9 +307,10 @@ namespace LoyaltyCandy
                 else
                     exception = registerTask.Exception?.Message;
             }
-
+            gameDataCheckUp = null;
             OnRead?.Invoke(true, gameData, exception);
         }
+
 
         private async Task<GameDataShared> GetGameDataAsync()
         {
@@ -298,13 +331,20 @@ namespace LoyaltyCandy
 
             if (task.IsCompletedSuccessfully)
             {
-                if (task.Result) Debug.Log("Just distributed");
+                if (task.Result)
+                {
+                    Debug.Log("Just distributed");
+                    if(gameDataCheckUp == null) StartCoroutine(GetOrRegisterGameDataCoroutine());
+                }
                 else Debug.Log("Not Yet distributed");
+
             }
             else
             {
                 Debug.LogError("Error : " + task.Exception);
             }
+
+            weeklyRewardCheckUp = null;
         }
 
         private async Task<bool> WeeklyRewardCheckAsync()
