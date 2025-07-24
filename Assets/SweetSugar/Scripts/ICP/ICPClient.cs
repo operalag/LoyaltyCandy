@@ -49,6 +49,7 @@ namespace LoyaltyCandy
         private Coroutine networkMonitorCoroutine;
         private Coroutine gameDataCheckUp;
         private Coroutine weeklyRewardCheckUp;
+        private Coroutine weeklyRewardDistribution;
         private int gameBalance;
         private bool isChecking;
         private bool appliedOfflineGem = false;
@@ -311,6 +312,33 @@ namespace LoyaltyCandy
             OnRead?.Invoke(true, gameData, exception);
         }
 
+        // public IEnumerator WeeklyRewardDistribution()
+        // {
+        //     Task<GameDataShared> fetchTask = GetGameDataAsync();
+        //     while (!fetchTask.IsCompleted) yield return null;
+
+        //     GameDataShared gameData = new GameDataShared();
+
+        //     if (fetchTask.IsCompletedSuccessfully && fetchTask.Result != null)
+        //     {
+        //         gameData = fetchTask.Result;
+
+        //         if (gameData.Rewarded)
+        //         {
+        //             StartCoroutine(GetRewardInfoCoroutine(result =>
+        //             {
+        //                 Debug.Log("rank received in callback: " + result.weeklyRank);
+        //                 Debug.Log("reward amount received in callback: " + result.rewardAmount);
+
+        //                 // Show weekly reward panel
+        //                 weeklyRankingRewardManager.ShowWeeklyRewardPanel(result.weeklyRank, result.rewardAmount);
+        //             }));
+        //         }
+
+        //         Debug.Log("user data" + gameData.Rewarded);
+        //     }
+        //     weeklyRewardDistribution = null;
+        // }
 
         private async Task<GameDataShared> GetGameDataAsync()
         {
@@ -334,7 +362,7 @@ namespace LoyaltyCandy
                 if (task.Result)
                 {
                     Debug.Log("Just distributed");
-                    if(gameDataCheckUp == null) StartCoroutine(GetOrRegisterGameDataCoroutine());
+                    // if(weeklyRewardDistribution == null) StartCoroutine(WeeklyRewardDistribution());
                 }
                 else Debug.Log("Not Yet distributed");
 
