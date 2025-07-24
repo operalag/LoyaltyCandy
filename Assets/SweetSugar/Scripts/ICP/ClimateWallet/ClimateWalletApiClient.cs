@@ -3,6 +3,8 @@ using EdjCase.ICP.Candid.Models;
 using EdjCase.ICP.Candid;
 using System.Threading.Tasks;
 using LoyaltyCandy.ClimateWallet;
+// using System.Diagnostics;
+using UnityEngine;
 
 namespace LoyaltyCandy.ClimateWallet
 {

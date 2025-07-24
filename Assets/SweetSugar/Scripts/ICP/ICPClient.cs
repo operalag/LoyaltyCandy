@@ -364,7 +364,8 @@ namespace LoyaltyCandy
             }
             else
             {
-                Debug.LogError("Failed to retrieve account address.");
+                
+                Debug.LogError("Failed to retrieve account address." + addressRetrieveTask.Exception);
             }
         }
 

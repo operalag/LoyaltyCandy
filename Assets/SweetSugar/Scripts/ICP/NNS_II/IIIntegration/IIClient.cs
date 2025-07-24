@@ -20,7 +20,7 @@ using LoyaltyCandy.NNSLedger.Models;
 class SetupData
 {
     private Ed25519Identity identity;
-    public string FrontendHostname { get { return "http://localhost:8080"; } set { } }
+    internal string networkUrl;
 
     internal Ed25519Identity GenerateOrGetDeviceKey()
     {
@@ -63,34 +63,32 @@ public class IIClientWrapper
     public InternetIdentityApiClient IIClient { get; set; }
     public NNSLedgerApiClient ledgerClient { get; set; }
 
-    public string hostAddress { get; private set; }
+
 
     internal SetupData data = new SetupData();
     private HttpAgent Agent { get; set; }
 
-    public IIClientWrapper(string netowrkUrl = "http://localhost:8080", string iiCanisterId = "qhbym-qaaaa-aaaaa-aaafq-cai", string ledgerCanisterId = "ryjl3-tyaaa-aaaaa-aaaba-cai")
+    public IIClientWrapper(string networkUrl, string iiCanisterId, string ledgerCanisterId)
     {
         this.IICanisterPrincipal = Principal.FromText(iiCanisterId);
         this.LedgerCanisterPrincipal = Principal.FromText(ledgerCanisterId);
-
-        this.hostAddress = netowrkUrl;
+        data.networkUrl = networkUrl;
 
         // Temporary agent for registration
         Ed25519Identity tempIdentity = data.GenerateOrGetDeviceKey();
-        this.Agent = new HttpAgent(tempIdentity, new Uri(this.hostAddress));
+        this.Agent = new HttpAgent(tempIdentity, new Uri(data.networkUrl));
         this.IIClient = new InternetIdentityApiClient(Agent, IICanisterPrincipal, new CandidConverter());
     }
 
     public void SetupAgentWithIdentity(Ed25519Identity identity)
     {
-        this.Agent = new HttpAgent(identity, new Uri(this.hostAddress));
+        this.Agent = new HttpAgent(identity, new Uri(data.networkUrl));
         this.IIClient = new InternetIdentityApiClient(this.Agent, this.IICanisterPrincipal, new CandidConverter());
     }
 
     private async Task<RegisterResponse.RegisteredInfo> RegisterAsync()
     {
         Challenge challenge = await IIClient.CreateChallenge();
-
         // Simulate solving (for demo)
         ChallengeResult captchaResult = new ChallengeResult
         {
@@ -137,12 +135,12 @@ public class IIClientWrapper
         List<byte> sessionPubKey = sessionKey.PublicKey.ToDerEncoding().ToList();
 
         (List<byte> userKey, ulong timestamp) prepareDelegationResp = await IIClient.PrepareDelegation(
-            user.UserNumber, data.FrontendHostname, sessionPubKey, OptionalValue<ulong>.NoValue());
+            user.UserNumber, data.networkUrl, sessionPubKey, OptionalValue<ulong>.NoValue());
 
         var userKey = prepareDelegationResp.Item1;
         var timestamp = prepareDelegationResp.Item2;
 
-        GetDelegationResponse getDelegationResp = await IIClient.GetDelegation(user.UserNumber, data.FrontendHostname, sessionPubKey, timestamp);
+        GetDelegationResponse getDelegationResp = await IIClient.GetDelegation(user.UserNumber, data.networkUrl, sessionPubKey, timestamp);
 
         SubjectPublicKeyInfo pubKeyInfo = new SubjectPublicKeyInfo(AlgorithmIdentifier.Ed25519(), userKey.ToArray());
         ICTimestamp expiration = new ICTimestamp(UnboundedUInt.FromUInt64(timestamp));
@@ -157,7 +155,8 @@ public class IIClientWrapper
 
         // Use delegation to create DelegationIdentity
         DelegationIdentity delegateIdentity = new DelegationIdentity(data.LoadIdentity(user.UserNumber), chain);
-        DelegateAgent = new HttpAgent(delegateIdentity.Identity, new Uri(data.FrontendHostname));
+        Debug.Log("Setting up agent " + data.networkUrl);
+        DelegateAgent = new HttpAgent(delegateIdentity.Identity, new Uri(data.networkUrl));
     }
 
     public IEnumerator LoginCoroutine(IIUser user, Action onComplete, Action<Exception> onError)

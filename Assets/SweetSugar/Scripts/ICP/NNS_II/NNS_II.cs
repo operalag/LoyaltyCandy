@@ -27,7 +27,7 @@ public class NNS_II : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        iiClient = new IIClientWrapper(Config.NetowrkUrl);
+        iiClient = new IIClientWrapper(Config.NetowrkUrl, Config.IICanisterId, Config.LedgerCanisterIdId);
         CheckUserNumber();
         LoginUser(userNumber);
     }
