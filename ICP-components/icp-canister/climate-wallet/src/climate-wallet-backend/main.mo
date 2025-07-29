@@ -468,8 +468,7 @@ actor LoyaltyGame {
     }
     else
     {
-      // if (sundayId > lastRewardedSundayId) {
-      if(true){
+      if (sundayId > lastRewardedSundayId) {
         Debug.print("Distributing reward for new week. Sunday ID: " # Nat.toText(sundayId));
         await rewardTop10(rewardAmount); //rewaring top 10 player
 
