@@ -17,6 +17,7 @@ using LoyaltyCandy.NNSLedger;
 using LoyaltyCandy.NNSLedger.Models;
 
 
+
 class SetupData
 {
     private Ed25519Identity identity;
@@ -68,6 +69,8 @@ public class IIClientWrapper
     internal SetupData data = new SetupData();
     private HttpAgent Agent { get; set; }
 
+
+
     public IIClientWrapper(string networkUrl, string iiCanisterId, string ledgerCanisterId)
     {
         this.IICanisterPrincipal = Principal.FromText(iiCanisterId);
@@ -78,12 +81,14 @@ public class IIClientWrapper
         Ed25519Identity tempIdentity = data.GenerateOrGetDeviceKey();
         this.Agent = new HttpAgent(tempIdentity, new Uri(data.networkUrl));
         this.IIClient = new InternetIdentityApiClient(Agent, IICanisterPrincipal, new CandidConverter());
+
     }
 
     public void SetupAgentWithIdentity(Ed25519Identity identity)
     {
         this.Agent = new HttpAgent(identity, new Uri(data.networkUrl));
         this.IIClient = new InternetIdentityApiClient(this.Agent, this.IICanisterPrincipal, new CandidConverter());
+
     }
 
     private async Task<RegisterResponse.RegisteredInfo> RegisterAsync()
@@ -120,7 +125,10 @@ public class IIClientWrapper
         while (!task.IsCompleted) yield return null;
 
         if (task.Exception != null)
+        {
+            Debug.LogError(task.Exception.ToString());
             onError?.Invoke(task.Exception.InnerException ?? task.Exception);
+        }
         else
         {
             Ed25519Identity identity = data.GenerateOrGetDeviceKey();
