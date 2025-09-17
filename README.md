@@ -12,6 +12,11 @@ LoyaltyCandy is a ready-to-deploy hypercasual mobile game designed to boost cust
 **Adoption instructions**:
 Check out Loyalty Candy Integration Manual.pdf for adopting it to your gameification project 
 
+**Limitation**:
+This project is developed for hypercausal campaigning 2-10 weeks. Hypercasual games typically don't attract long term engagement. This tool is designed for fast adoption from retailers to do loyalty campaign using ICP as infrastructure. These campaigns rarely exceed 8 weeks. This is why we decided that accounts are limited to 1 device and in the design it is not planned to transfer accounts from one device to another. 
+
+
+
 ## ✨ Key Features
 
 ### 🎯 For Brands & Retailers
