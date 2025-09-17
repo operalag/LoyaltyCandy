@@ -9,6 +9,9 @@ LoyaltyCandy is a ready-to-deploy hypercasual mobile game designed to boost cust
 
 **Proven Success**: Based on our loyalty campaign for a retailer that engaged 5% of the Swiss population, LoyaltyCandy offers a tested approach to customer engagement through gaming.
 
+**Adoption instructions**:
+Check out Loyalty Candy Integration Manual.pdf for adopting it to your gameification project 
+
 ## ✨ Key Features
 
 ### 🎯 For Brands & Retailers
