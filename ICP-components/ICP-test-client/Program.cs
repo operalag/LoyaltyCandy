@@ -1,51 +1,89 @@
-﻿// See https://aka.ms/new-console-template for more information
-using EdjCase.ICP.Agent.Agents;
-using EdjCase.ICP.Candid.Models;
-using LoyaltyCandy;
+﻿using EdjCase.ICP.Candid.Models;
 using LoyaltyCandy.ClimateWallet;
-using LoyaltyCandy.ClimateWallet.Models;
-using LoyaltyCandy.HelloClient;
+using LoyaltyCandy.NNSLedger;
+using LoyaltyCandy.NNSLedger.Models;
+using EdjCase.ICP.Agent.Identities;
 
-Console.WriteLine("Hello, World!");
-Uri network = new Uri("http://localhost:4943");
-var agent = new HttpAgent(null, network);
+string hostname = "http://localhost:8080";
 
-// Principal canisterId = Principal.FromText("bkyz2-fmaaa-aaaaa-qaaaq-cai");
-// var helloClient = new HelloClientApiClient(agent, canisterId);
-// string greeting = await helloClient.Greet("Casper");
+IIClientWrapper iiClient = new IIClientWrapper();
 
-// Console.WriteLine(greeting);
+IIUser user = iiClient.Register();
+// IIUser user = new IIUser(10004L);
 
+Ed25519Identity identity = iiClient.data.LoadIdentity(user.UserNumber);
+iiClient.SetupAgentWithIdentity(identity); // Use original registered key
+iiClient.Login(user);
 
-Principal canisterId2 = Principal.FromText("br5f7-7uaaa-aaaaa-qaaca-cai");
-ClimateWalletApiClient climateClient = new ClimateWalletApiClient(agent, canisterId2);
+Principal userPrincipalID = iiClient.DelegateAgent.Identity.GetPrincipal();
+Console.WriteLine($"User {user.UserNumber} registered");
+Console.WriteLine($"User Principal ID: {userPrincipalID}");
 
-// UnboundedUInt counterValue = await climateClient.Read();
-// Console.WriteLine(counterValue.ToString());
+// Step 8: Use delegated identity to call NNS canisters
+Principal ledgerCanisterId = Principal.FromText("ryjl3-tyaaa-aaaaa-aaaba-cai");
+NNSLedgerApiClient ledgerClient = new NNSLedgerApiClient(iiClient.DelegateAgent, ledgerCanisterId);
 
-// await climateClient.Inc();
-// counterValue = await climateClient.Read();
-// Console.WriteLine(counterValue.ToString());
+//login to custom canister
+Principal climateWalletPrincipal = Principal.FromText("uxrrr-q7777-77774-qaaaq-cai");
+ClimateWalletApiClient climateClient = new ClimateWalletApiClient(iiClient.DelegateAgent, climateWalletPrincipal);
 
-// counterValue = await climateClient.Bump();
-// Console.WriteLine(counterValue.ToString());
+//Sender Account
+Account climateAccount = new Account
+{
+    Owner      = climateWalletPrincipal,
+    Subaccount = null                   // implicit OptionalValue wrap
+};
 
+List<byte> climateAccountIdBytes = await ledgerClient.AccountIdentifier(climateAccount);
+string climateAccountIdHex = BitConverter.ToString(climateAccountIdBytes.ToArray()).Replace("-", "").ToLowerInvariant();
+Console.WriteLine($"Climate Account-ID hex: {climateAccountIdHex}");
 
-// counterValue = await climateClient.Set((uint) 345);
-// Console.WriteLine(counterValue.ToString());
+var balTxt = climateClient.GetMyCanisterBalanceTxt();
+Console.WriteLine($"Climate Balance: {balTxt.Result}");
+
+//Rceiver Account
+Account receiverAccount = new Account
+{
+    Owner      = userPrincipalID,
+    Subaccount = null                    // implicit OptionalValue wrap
+};
+
+List<byte> receiverAccountIdBytes = await ledgerClient.AccountIdentifier(receiverAccount);
+string receiverAccountIdHex = BitConverter.ToString(receiverAccountIdBytes.ToArray()).Replace("-", "").ToLowerInvariant();
+Console.WriteLine($"Receiver Account‑ID hex: {receiverAccountIdHex}");
+Tokens receiverBalance = await ledgerClient.AccountBalance(new AccountBalanceArgs(receiverAccountIdBytes));
+// Console.WriteLine($"Receiver Balance: {receiverBalance.E8s / 100_000_000} ICP");
+
+var val = climateClient.RegisterPlayer($"Player{user.UserNumber}", true); // Add player to the game
+var score = climateClient.UpdatePlayerScore((uint)user.UserNumber); //update Score
+
+var readResult = await climateClient.GetGameData();  // Get current user's data
+
+var rewardAmount = await climateClient.ShowRewardAmount();
+Console.WriteLine($"reward amount {rewardAmount}");
+
+var climateAccountAddr = await climateClient.GetCanisterAccountAddressHex();
+Console.WriteLine($"canister addres in hex {climateAccountAddr}");
+// var userScore = await climateClient.ReadScore();
+// Console.WriteLine($"user Score: {userScore}");
+// await climateClient.CheckAndMaybeDistributeReward();
+
+// await climateClient.RewardClaimed();
+
+// await climateClient.ResetPlayerWeeklyRank();
+
+Console.WriteLine($"Name: {readResult.Name}, IsMale: {readResult.IsMale}, Rank: {readResult.Rank}, Score: {readResult.Score}, Rewarded: {readResult.Rewarded}, weekly Rank: {readResult.WeeklyRank}");
+Console.WriteLine($"user Account Address hex: {readResult.PlayerAddress}");
+
 
 Tester tester = new Tester(climateClient);
-await tester.UpdateCurrentRank();
-await tester.printRanking(10, 10);
+tester.UpdateCurrentRank(readResult);
 
-// await tester.SetScoreAsync(231);
-// await tester.printRanking(1, 1);
+Console.WriteLine($"Global ranking");
+await tester.printGlobalRanking(10, 10);
 
-// await tester.SetScoreAsync(234);
-// await tester.printRanking(1, 1);
+// Console.WriteLine($"clearing weekly ranking data");
+// await climateClient.ResetWeeklyPlayerData();
 
-await tester.SetScoreAsync(323);
-await tester.printRanking(1, 1);
-
-// await tester.SetScoreAsync(3);
-// await tester.printRanking(1, 1);
+Console.WriteLine($"weekly ranking");
+await tester.printWeeklyRanking(10, 10);

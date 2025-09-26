@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using LoyaltyCandy;
+using LoyaltyCandy.ClimateWallet.Models;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -23,20 +24,26 @@ public class ScoreController : MonoBehaviour
         icpClient.OnSet += UpdateUI;
     }
 
+    // private void UpdateUI(bool success, object result, string message)
+    // {
+    //     setInput.enabled = true;
+    //     setButton.enabled = true;
+
+    //     scoreLabel.text = success ? result.ToString() : message;
+    // }
+    
     private void UpdateUI(bool success, object result, string message)
     {
+        GameDataShared gameDataShared = result as GameDataShared;
         setInput.enabled = true;
         setButton.enabled = true;
 
-        scoreLabel.text = success ? result.ToString() : message;
+        scoreLabel.text = success ? gameDataShared.Score.ToString() : message;
     }
 
-    public void SaveScore() {
+    public void SaveScore()
+    {
         setButton.enabled = false;
         icpClient.SaveCoins(int.Parse(setInput.text));
-    }
-
-    public void ReadScore() {
-        icpClient.ReadScore();
     }
 }

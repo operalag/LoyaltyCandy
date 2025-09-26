@@ -1,85 +1,775 @@
 import Nat32 "mo:base/Nat32";
 import List "mo:base/List";
-import RBTree "mo:base/RBTree";
 import Debug "mo:base/Debug";
 import Bool "mo:base/Bool";
 import Option "mo:base/Option";
-import Text "mo:base/Text";
 import Int16 "mo:base/Int16";
-import Array "mo:base/Array";
 import Iter "mo:base/Iter";
-import Nat16 "mo:base/Nat16";
-import Nat64 "mo:base/Nat64";
 import Types "./types";
+import Principal "mo:base/Principal";
+import HashMap "mo:base/HashMap";
+import Error "mo:base/Error";
+import Blob "mo:base/Blob";
+import Text "mo:base/Text";
+import Nat "mo:base/Nat";
+import Nat64 "mo:base/Nat64";
+import Time "mo:base/Time";
+import Int "mo:base/Int";
+import Nat8 "mo:base/Nat8";
+import Array "mo:base/Array";
+
 
 actor LoyaltyGame {
+  //=========== DISTRUBUTION TIME ==========
+  stable var isWeeklyCompetitionRunning : Bool = false;
+  stable var lastRewardedSundayId : Nat = 0;
+  stable var rewardAmount : Nat = 1_000_000_000;  //// Reward top 10 players with 10 ICP each
+
+  // ========== TYPE ALIASES ==========
+  type GameData = Types.GameData;
+  type GameDataShared = Types.GameDataShared;
   type RankingResult = Types.RankingResult;
-  type PlayerRank = Types.PlayerRank;
   type PRank = Types.PRank;
-  type Rank = Types.Rank;
-  type PlayerName = Types.PlayerName;
+  type Account = {owner : Principal; subaccount : ?Blob;};
+  type GameDataWithPrincipal = {principal : Principal; data : GameDataShared;};
 
-  stable var players = List.nil<PlayerRank>();
-  var ranking = RBTree.RBTree <Int16, PlayerRank>(Int16.compare);
-  var currentPlayerRank : PlayerRank = {name = "No one"; var score = 0; var rank = -1;};
-  var initRanks = false;
+  // ========== CONSTANTS ==========
+  let INITIAL_CAPACITY = 16;
+  let EMPTY_RANK : PRank = {name=""; isMale=true; rank=0; score=0; playerAddress=""; rewarded = false; weeklyRank = 0};
 
-  let EMPTY_RANK :PRank = {name=""; rank=0; score=0;};
+  // ========== PLAYER DATA STORAGE ==========
+  // Player data storage
+  stable var playerDataStable : [(Principal, GameData)] = [];
+  stable var weeklyPlayerDataStable : [(Principal, GameData)] = [];
 
-  func fullRanking() : List.List<PlayerRank> {
-    var list: List.List<PlayerRank> = List.nil<PlayerRank>();
-    let namgay:PlayerRank = { name = "Namgay"; var score = 10008; var rank = 1};
-    list := List.push(namgay, list);
-    let tashi:PlayerRank = { name = "Tashi"; var score = 1008; var rank = 2};
-    list := List.push(tashi, list);
-    let ugyentshewang:PlayerRank = { name = "Ugyen Tshewang"; var score = 954; var rank = 3};
-    list := List.push(ugyentshewang, list);
-    let yeshi:PlayerRank = { name = "Yeshi"; var score = 856; var rank = 4};
-    list := List.push(yeshi, list);
-    let pema:PlayerRank = { name = "Pema"; var score = 345; var rank = 5};
-    list := List.push(pema, list);
-    let passang:PlayerRank = { name = "Passang"; var score = 322; var rank = 6};
-    list := List.push(passang, list);
-    let nima:PlayerRank = { name = "Nima"; var score = 322; var rank = 7};
-    list := List.push(nima, list);
-    let casper:PlayerRank = { name = "Casper"; var score = 231; var rank = 8};
-    currentPlayerRank := casper;
-    Debug.print("initialising curent player rank");
-    Debug.print(debug_show currentPlayerRank);
-    list := List.push(casper, list);
-    let ugyenrinzin:PlayerRank = { name = "Ugyen Rinzin"; var score = 125; var rank = 9};
-    list := List.push(ugyenrinzin, list);
-    let tezay:PlayerRank = { name = "Tezay"; var score = 89; var rank = 10};
-    list := List.push(tezay, list);
+  var playerData = HashMap.HashMap<Principal, GameData>(INITIAL_CAPACITY, Principal.equal, Principal.hash);
+  var weeklyPlayerData = HashMap.HashMap<Principal, GameData>(INITIAL_CAPACITY, Principal.equal, Principal.hash);
 
-    list;
+  // ========== SYSTEM METHODS ==========
+  system func preupgrade() {
+    playerDataStable := Iter.toArray(playerData.entries());
+    weeklyPlayerDataStable := Iter.toArray(weeklyPlayerData.entries());
   };
 
-  func min(a: Nat, b: Nat) : Nat {
-    if (a < b) {
-      a
-    } else {
-      b
+  system func postupgrade() {
+    // Rebuild player data
+    playerData := HashMap.fromIter<Principal, GameData>(
+    playerDataStable.vals(), 
+    INITIAL_CAPACITY, 
+    Principal.equal, 
+    Principal.hash);
+
+    weeklyPlayerData := HashMap.fromIter<Principal, GameData>(
+    weeklyPlayerDataStable.vals(),
+    INITIAL_CAPACITY,
+    Principal.equal,
+    Principal.hash);
+  };
+
+  // ========== PLAYER MANAGEMENT ==========
+  //remainder to make if possible if the player is already register reject the resgistration
+  public shared(msg) func registerPlayer(name: Text, isMale: Bool) : async GameDataShared {
+    if (Principal.isAnonymous(msg.caller)) {
+      throw Error.reject("Anonymous users are not allowed to register.");
+    };
+    let user = msg.caller;
+
+    switch (playerData.get(user)) {
+      case (?existing) {
+        // Player already registered — return their current shared data
+        Debug.print("Player already exists");
+        return toGameDataShared(existing);
+      };
+      case null {
+      let userAddress = await getAccountAddress(user);
+      // Register new player
+      let newPlayer : GameData = {
+        name = name;
+        isMale = isMale;
+        var score = 0;
+        var rank = -99;
+        playerAddress = userAddress;
+        rewarded = false;
+        weeklyRank = 0;
+        };
+        playerData.put(user, newPlayer);
+        recalculateRanks();
+        return toGameDataShared(newPlayer);
+      };
+    };
+  };
+
+  func recalculateRanks() {
+    let allPlayers = Iter.toArray(playerData.entries());
+    let sorted = Array.sort<(Principal, GameData)>(
+      allPlayers,
+      func((_, a : GameData), (_, b : GameData)) : {#less; #equal; #greater} {
+        Nat32.compare(b.score, a.score)
+      }
+    );
+
+    var i: Int = 1;
+    for ((principal, data) in sorted.vals()) {
+      data.rank := Int16.fromInt(i);
+      playerData.put(principal, data);
+      i += 1;
+    };
+
+    Debug.print("Recalculated ranks.");
+  };
+
+  func recalculateWeeklyRanks() {
+    let allPlayers = Iter.toArray(weeklyPlayerData.entries());
+    let sorted = Array.sort<(Principal, GameData)>(
+      allPlayers,
+      func((_, a), (_, b)) = Nat32.compare(b.score, a.score)
+    );
+
+    var i: Int = 1;
+    for ((principal, data) in sorted.vals()) {
+      data.rank := Int16.fromInt(i);
+      weeklyPlayerData.put(principal, data);
+      i += 1;
+    };
+
+    Debug.print("Weekly ranks recalculated.");
+  };
+
+  public shared(msg) func getGameData() : async GameDataShared {
+    if (Principal.isAnonymous(msg.caller)) {
+      throw Error.reject("Anonymous access not allowed.");
+    };
+
+    let caller = msg.caller;
+    switch (playerData.get(caller)) {
+      case (?data) 
+      {
+        return toGameDataShared(data); // then return the data
+      };
+      case null { throw Error.reject("Player not found.");};
     }
   };
 
-  func max(a: Int16, b: Int16) : Int16 {
-    if (a > b) {
-      a
+  public shared(msg) func updatePlayerScore(newScore: Nat32) : async () {
+    if (Principal.isAnonymous(msg.caller)) {
+      throw Error.reject("Anonymous access not allowed.");
+    };
+
+    let caller = msg.caller;
+    let globalScore : Nat32 = Option.get(Option.map<GameData, Nat32>(playerData.get(caller),func(d: GameData) : Nat32 { d.score }), 0 : Nat32);
+      
+    if (newScore <= globalScore) {
+      return;
+    };
+
+    let diff = newScore - globalScore;
+    let weeklyAdded = await updateWeeklyScore(caller, diff); // Step 1: Update or insert weekly score (overwrite score for this week)
+
+    addToGlobalScore(caller, weeklyAdded); // Step 2: Add that score to global total (accumulative)
+    recalculateWeeklyRanks(); // Step 3: Recalculate both rankings
+    recalculateRanks();
+
+    Debug.print("Player updated: +" # Nat32.toText(weeklyAdded) # " to global + weekly reset");
+  };
+
+  public shared(msg) func readScore() : async Nat32 {
+    let caller = msg.caller;
+
+    if (Principal.isAnonymous(caller)) {
+      throw Error.reject("Anonymous access not allowed.");
+    };
+
+    switch (playerData.get(caller)) {
+      case (?data) {
+        return data.score;
+      };
+      case null {
+        throw Error.reject("Player not found. Please register first.");
+      };
+    };
+  };
+
+  func updateWeeklyScore(user: Principal, newScore: Nat32) : async Nat32 {
+    let address = await getAccountAddress(user);
+    let diff : Nat32 = switch (weeklyPlayerData.get(user)) {
+      case (?data) {
+        let added = newScore;
+        data.score += newScore; // Replace for weekly
+        added
+      };
+      case null {
+        let newData : GameData = {
+          name = Option.get(Option.map<GameData, Text>(playerData.get(user), func(d: GameData) : Text { d.name }), "Unknown");
+          isMale = Option.get(Option.map<GameData, Bool>(playerData.get(user), func(d: GameData) : Bool { d.isMale }), true);
+
+          var score = newScore;
+          var rank = -99;
+          playerAddress = address;
+          rewarded = false;
+          weeklyRank = 0;
+        };
+        weeklyPlayerData.put(user, newData);
+        newScore;
+      };
+    };
+
+    Debug.print("Weekly Score added");
+
+    // Update entry
+    ignore weeklyPlayerData.get(user); // already updated
+    return diff;
+  };
+
+  public shared func resetWeeklyPlayerData() : async () {
+    weeklyPlayerData := HashMap.HashMap<Principal, GameData>(
+      INITIAL_CAPACITY,
+      Principal.equal,
+      Principal.hash
+    );
+    weeklyPlayerDataStable := [];
+    Debug.print("Weekly player data has been reset.");
+  };
+
+  func addToGlobalScore(user: Principal, scoreToAdd: Nat32) {
+    switch (playerData.get(user)) {
+      case (?data) {
+        data.score += scoreToAdd;
+        playerData.put(user, data);
+        Debug.print("Global Score added");
+      };
+      case null {
+        Debug.print("User not found in global data. Score not added.");
+      };
+    };
+  };
+
+  func getTopRankingWithPrincipal() : async [GameDataWithPrincipal] {
+    let allPlayers = Iter.toArray(weeklyPlayerData.entries());
+    let sorted = Array.sort<(Principal, GameData)>(
+      allPlayers,
+      func((_, a), (_, b)) {
+        Nat32.compare(b.score, a.score)
+      }
+    );
+
+    let count = min(10, sorted.size());
+
+    Array.tabulate<GameDataWithPrincipal>(
+      count,
+      func(i) {
+        let (principal, data) = sorted[i];
+        {
+          principal = principal;
+          data = toGameDataShared(data);
+        }
+      }
+    )
+  };
+
+  public shared (msg) func getCurrentGlobalRanking() : async Types.PRank {
+    let caller = msg.caller;
+
+    if (Principal.isAnonymous(caller)) {
+      throw Error.reject("Anonymous access not allowed.");
+    };
+
+    Debug.print("Fetching Global Ranking Data");
+
+    switch (playerData.get(caller)) {
+      case (?data) {
+        if (data.rank < 1) {
+          recalculateRanks(); // Refresh ranks if the player's rank hasn't been set
+        };
+        {
+          name = data.name;
+          isMale = data.isMale;
+          score = data.score;
+          rank = data.rank;
+          playerAddress = data.playerAddress;
+          rewarded = data.rewarded;
+          weeklyRank = data.weeklyRank;
+        };
+      };
+      case null {
+        throw Error.reject("Player not found. Please register first.");
+      };
+    };
+  };
+
+  public shared (msg) func showRewardAmount() : async Text {
+    let caller = msg.caller;
+
+    if (Principal.isAnonymous(caller)) {
+        throw Error.reject("Anonymous access not allowed.");
+    };
+
+    let e8s : Nat = rewardAmount;
+    let whole      = e8s / 100_000_000;
+    let fractional = e8s % 100_000_000;
+
+    // Truncate to 2 decimal digits
+    let fractional2Digits = fractional / 1_000_000;
+    let fracTxt = Nat.toText(fractional2Digits);
+
+    // Pad with leading 0 if needed
+    let padded = if (fractional2Digits < 10) {
+        "0" # fracTxt
     } else {
-      b
+        fracTxt
+    };
+
+    let result = Nat.toText(whole) # "." # padded;
+    Debug.print(result);
+    result
+  };
+
+  
+
+  public shared (msg) func getCurrentWeeklyRanking() : async Types.PRank {
+    let caller = msg.caller;
+
+    if (Principal.isAnonymous(caller)) {
+      throw Error.reject("Anonymous access not allowed.");
+    };
+
+    Debug.print("Fetching Weekly Ranking Data");
+
+    switch (weeklyPlayerData.get(caller)) {
+      case (?data) {
+        if (data.rank < 1) {
+          recalculateRanks(); // Refresh ranks if the player's rank hasn't been set
+        };
+        {
+          name = data.name;
+          isMale = data.isMale;
+          score = data.score;
+          rank = data.rank;
+          playerAddress = data.playerAddress;
+          rewarded = data.rewarded;
+          weeklyRank = data.weeklyRank;
+        };
+      };
+      case null {
+        throw Error.reject("Player not found. Please register first.");
+      };
+    };
+  };
+
+  public shared func getGlobalRanking(before: Nat32, after: Nat32, rank: Int16) : async RankingResult {
+    let allPlayers = Iter.toArray(playerData.vals());
+    // Sort players by descending score
+    let sorted = Array.sort<GameData>(
+      allPlayers,
+      func(a, b) { Nat32.compare(b.score, a.score) } // descending
+    );
+
+    // Safely convert Nat32 to Int16 using range check
+    func safeToInt16(n: Nat32) : Int16 {
+      if (n <= 32_767) {
+        Int16.fromNat16(Nat32.toNat16(n));
+      } else {
+        Int16.fromNat16(0);
+      }
+    };
+
+    let beforeInt16 = safeToInt16(before);
+    let afterInt16 = safeToInt16(after);
+
+    // Helper to convert GameData → PRank
+    func toPRank(g : GameData) : PRank {
+      {
+        name = g.name;
+        isMale = g.isMale;
+        score = g.score;
+        rank = g.rank;
+        playerAddress = g.playerAddress;
+        rewarded = g.rewarded;
+        weeklyRank = g.weeklyRank;
+      }
+    };
+
+    var list = List.nil<PRank>();
+    for (player in sorted.vals()) {
+      if (player.rank >= rank - beforeInt16 and player.rank <= rank + afterInt16) {
+        list := List.push(toPRank(player), list);
+      };
+    };
+
+    Debug.print("Fetching Global limit Ranking Data");
+
+    { ranking = List.toArray(List.reverse(list)) }
+  };
+
+  public shared func getWeeklyRanking(before: Nat32, after: Nat32, rank: Int16) : async RankingResult {
+    let allPlayers = Iter.toArray(weeklyPlayerData.vals());
+    // Sort players by descending score
+    let sorted = Array.sort<GameData>(
+      allPlayers,
+      func(a, b) { Nat32.compare(b.score, a.score) } // descending
+    );
+
+    // Safely convert Nat32 to Int16 using range check
+    func safeToInt16(n: Nat32) : Int16 {
+      if (n <= 32_767) {
+        Int16.fromNat16(Nat32.toNat16(n));
+      } else {
+        Int16.fromNat16(0);
+      }
+    };
+
+    let beforeInt16 = safeToInt16(before);
+    let afterInt16 = safeToInt16(after);
+
+    // Helper to convert GameData → PRank
+    func toPRank(g : GameData) : PRank {
+      {
+        name = g.name;
+        isMale = g.isMale;
+        score = g.score;
+        rank = g.rank;
+        playerAddress = g.playerAddress;
+        rewarded = g.rewarded;
+        weeklyRank = g.weeklyRank;
+      }
+    };
+
+    var list = List.nil<PRank>();
+    for (player in sorted.vals()) {
+      if (player.rank >= rank - beforeInt16 and player.rank <= rank + afterInt16) {
+        list := List.push(toPRank(player), list);
+      };
+    };
+
+    Debug.print("Fetching Weekly limit Ranking Data");
+
+    { ranking = List.toArray(List.reverse(list)) }
+  };
+
+  //=========== DSTRUTUBION ON SUNDAY ============
+  // Determines which Sunday "this week" corresponds to
+  func getLatestSundayIdFromNow() : Nat {
+    let now = Time.now();
+    let secondsSinceEpoch = Int.abs(now) / 1_000_000_000;
+    let daysSinceEpoch = secondsSinceEpoch / 86_400;
+
+    // Unix epoch (Jan 1, 1970) was a Thursday, so Sunday = -3 offset
+    let latestSundayDayIndex = (daysSinceEpoch - ((daysSinceEpoch + 3) % 7)) / 7;
+    return latestSundayDayIndex; // Always positive Nat
+  };
+
+  public shared func checkAndMaybeDistributeReward() : async Bool {
+    let sundayId = getLatestSundayIdFromNow();
+    if (not isWeeklyCompetitionRunning) {
+      isWeeklyCompetitionRunning := true;
+      lastRewardedSundayId := sundayId;
+
+      Debug.print("Competition started on Sunday ID: " # Nat.toText(sundayId));
+      return false;
+    }
+    else
+    {
+      if (sundayId > lastRewardedSundayId) {
+        Debug.print("Distributing reward for new week. Sunday ID: " # Nat.toText(sundayId));
+        await rewardTop10(rewardAmount); //rewaring top 10 player
+
+        lastRewardedSundayId := sundayId;
+
+        await resetWeeklyPlayerData();
+        Debug.print("Reward given and marked for Sunday ID: " # Nat.toText(sundayId));
+        return true;
+      } else {
+        Debug.print("Reward already distributed for the latest Sunday or Wait till next sunday.");
+        return false;
+      };
+    };
+  };
+
+  // ========== LEDGER INTERACTION ==========
+  let ledger : actor {
+    icrc1_transfer: shared {
+      from_subaccount: ?Blob;
+      to: {
+        owner: Principal;
+        subaccount: ?Blob;
+      };
+      amount: Nat;
+      fee: ?{ e8s: Nat };
+      memo: ?Blob;
+      created_at_time: ?{ timestamp_nanos: Nat64 };
+    } -> async {
+      #Ok : Nat;
+      #Err : {
+        #GenericError : { message : Text; error_code : Nat };
+        #TemporarilyUnavailable : {};
+        #BadBurn : { min_burn_amount : Nat };
+        #Duplicate : { duplicate_of : Nat };
+        #BadFee : { expected_fee : Nat };
+        #CreatedInFuture : { ledger_time : Nat64 };
+        #TooOld : {};
+        #InsufficientFunds : { balance : Nat };
+      };
+    };
+    icrc1_balance_of : shared Account -> async Nat;
+    account_identifier : shared Account -> async Blob;
+  } = actor("ryjl3-tyaaa-aaaaa-aaaba-cai");  // Official ICP Ledger canister ID
+
+  func rewardTop10(amountPerPlayerE8s: Nat) : async () {
+    let topPlayers = await getTopRankingWithPrincipal();
+
+    for (player in topPlayers.vals()) {
+      Debug.print("Sending to: " # player.data.name);
+      try {
+        let blockIndex = await sendIcp(player.principal, amountPerPlayerE8s);
+        Debug.print("Sent to " # player.data.name # " | Block: " # Nat.toText(blockIndex));
+
+        // Call internal version directly
+        markRewarded(player.principal);
+
+      } catch (e) {
+        Debug.print("Failed for " # player.data.name # ": " # Error.message(e));
+      };
+    };
+  };
+
+  // Internal version (can be called from within the canister)
+  func markRewarded(player: Principal) {
+      switch (playerData.get(player)) {
+        case (?data) {
+          switch (weeklyPlayerData.get(player)) {
+            case (?weeklyData) {
+              let updatedData : GameData = {
+                name = data.name;
+                isMale = data.isMale;
+                var score = data.score;
+                var rank = data.rank;
+                playerAddress = data.playerAddress;
+                rewarded = true;
+                weeklyRank = weeklyData.rank; // unwrapped properly
+              };
+              playerData.put(player, updatedData);
+            };
+            case null {
+              Debug.print("No weekly data found.");
+            };
+          };
+        };
+      case null {
+        Debug.print("No player data found.");
+      };
+    };
+  };
+
+  // Public shared version (for external calls)
+  public shared(msg) func rewardClaimed() : async () {
+    if (Principal.isAnonymous(msg.caller)) {
+      throw Error.reject("Anonymous access not allowed.");
+    };
+      switch (playerData.get(msg.caller)) {
+        case (?data) {
+          let updatedData : GameData = {
+            name = data.name;
+            isMale = data.isMale;
+            var score = data.score;
+            var rank = data.rank;
+            playerAddress = data.playerAddress;
+            rewarded = false;
+            weeklyRank = data.weeklyRank; // unwrapped properly
+            };
+            playerData.put(msg.caller, updatedData);
+          };
+        case null {
+          Debug.print("No weekly data found.");
+      };
+    };
+  };
+
+  public shared(msg) func resetPlayerWeeklyRank() : async() {
+    let caller = msg.caller;
+
+    if (Principal.isAnonymous(caller)) {
+      throw Error.reject("Anonymous access not allowed.");
+    };
+    switch (playerData.get(caller)) {
+        case (?data) {
+          let updatedData : GameData = {
+            name = data.name;
+            isMale = data.isMale;
+            var score = data.score;
+            var rank = data.rank;
+            playerAddress = data.playerAddress;
+            rewarded = data.rewarded;
+            weeklyRank = 0; // unwrapped properly
+          };
+          playerData.put(caller, updatedData);
+        };
+      case null {
+        Debug.print("No weekly data found.");
+      };
+    };
+  };
+  
+  public shared(msg) func getMyBalanceTxt() : async Text {
+    let caller = msg.caller;
+
+    if (Principal.isAnonymous(caller)) {
+      throw Error.reject("Anonymous access not allowed.");
+    };
+    
+    let e8s : Nat = await getMyBalance(caller);
+    let result = formatE8sToIcpText(e8s);
+    Debug.print(result);
+    return result;
+  };
+
+
+  func getMyBalance(principalId : Principal) : async Nat {
+    let account : Account = {
+      owner      = principalId;
+      subaccount = null;
+    };
+
+    // This awaits the remote ledger call and returns the Nat result.
+    await ledger.icrc1_balance_of(account);
+  };
+
+  public shared func getMyCanisterBalanceTxt() : async Text {
+    let e8s : Nat = await getMyCanisterBalance();
+    let result = formatE8sToIcpText(e8s);
+    Debug.print(result);
+    return result;
+  };
+
+    // Balance in e8s (1 ICP = 100 000 000 e8s)
+  func getMyCanisterBalance() : async Nat {
+    let account : Account = {
+      owner      = Principal.fromActor(LoyaltyGame);
+      subaccount = null;
+    };
+
+    // This awaits the remote ledger call and returns the Nat result.
+    await ledger.icrc1_balance_of(account);
+  };
+
+  func getAccountAddress(userPrincipal: Principal) : async Text {
+    let account : Account = {
+      owner = userPrincipal;
+      subaccount = null;
+    };
+
+    let blob : Blob = await ledger.account_identifier(account);
+    blobToHex(blob)
+  };
+
+  // ========== UTILITIES ==========
+  func toGameDataShared(data: GameData) : GameDataShared {
+    {
+      name = data.name;
+      isMale = data.isMale;
+      score = data.score;
+      rank = data.rank;
+      playerAddress = data.playerAddress;
+      rewarded = data.rewarded;
+      weeklyRank = data.weeklyRank;
     }
   };
 
-  func partition(l: List.List<PlayerRank>, score: Nat32) : (List.List<PlayerRank>, List.List<PlayerRank>) {
+  func blobToHex(b : Blob) : Text {
+    let bytes = Blob.toArray(b);
+    Array.foldLeft<Nat8, Text>(bytes, "", func (acc, byte) {
+      acc # byteToHex(byte)
+    })
+  };
+
+  func byteToHex(n : Nat8) : Text {
+    let hexChars = "0123456789abcdef";
+    let hi = Nat8.toNat(n / 16);
+    let lo = Nat8.toNat(n % 16);
+
+    func charAt(txt: Text, idx: Nat) : Char {
+      var i = 0;
+      for (c in txt.chars()) {
+        if (i == idx) return c;
+        i += 1;
+      };
+      return '\u{0}';
+    };
+
+    Text.fromChar(charAt(hexChars, hi)) # Text.fromChar(charAt(hexChars, lo))
+  };
+
+  func repeatChar(c: Text, n: Nat) : Text {
+    var result = "";
+    var i = 0;
+    while (i < n) {
+      result := result # c;
+      i += 1;
+    };
+    result
+  };
+
+  func formatE8sToIcpText(e8s: Nat) : Text {
+    let whole      = e8s / 100_000_000;
+    let fractional = (e8s % 100_000_000) / 1_000_000;
+
+    let fractionalText = Nat.toText(fractional);
+    let paddedFraction = if (fractionalText.size() == 1) {
+    "0" # fractionalText
+    } else {
+      fractionalText
+    };
+
+    let result = Nat.toText(whole) # "." # paddedFraction # " ICP";
+    Debug.print(result);
+    return result;
+  };
+
+  // ========== TRANSFER TOKEN ==========
+  public shared(msg) func getCanisterAccountAddressHex() : async Text {
+    let caller = msg.caller;
+
+    if (Principal.isAnonymous(caller)) {
+      throw Error.reject("Anonymous access not allowed.");
+    };
+    
+    let canisterPrincipal = Principal.fromActor(LoyaltyGame);
+    await getAccountAddress(canisterPrincipal)
+  };
+
+  func sendIcp(to: Principal, amountE8s: Nat) : async Nat {
+    let transferResult = await ledger.icrc1_transfer({
+      from_subaccount = null;
+      to = {
+        owner = to;
+        subaccount = null;
+      };
+      amount = amountE8s;
+      fee = ?{ e8s = 10_000 };
+      memo = null;
+      created_at_time = ?{ timestamp_nanos = Nat64.fromNat(Int.abs(Time.now())) };
+    });
+
+    switch (transferResult) {
+      case (#Ok blockIndex) blockIndex;
+      case (#Err err) {
+        Debug.print("Transfer failed: " # debug_show(err));
+        throw Error.reject("ICP transfer failed.");
+      };
+    };
+  };
+
+  func partition(l: List.List<GameData>, score: Nat32) : (List.List<GameData>, List.List<GameData>) {
     switch l {
       case null { (null, null) };
-      case (?(h, t)) {
-        if (h.score >= score) {
+      case (?(h, t)) 
+      {
+        if (h.score >= score) 
+        {
           // call f in-order
           let (l, r) = partition(t, score);
           (?(h, l), r)
-        } else {
+        } 
+        else 
+        {
           let (l, r) = partition(t, score);
           (l, ?(h, r))
         }
@@ -87,196 +777,31 @@ actor LoyaltyGame {
     }
   };
 
-  func toNat16(n: Nat32) : ?Int16 {
-    if (n <= 32_767) {  // Ensure the value is within the range of Int16
-        return Option.make(Int16.fromNat16(Nat32.toNat16(n)));  // Convert Nat to Int16
-    } else {
-        return null;  // Return null if the value is out of range
+  func toNat16(n: Nat32) : ?Int16 
+  {
+    if (n <= 32_767) 
+    {  // Ensure the value is within the range of Int16
+      return Option.make(Int16.fromNat16(Nat32.toNat16(n)));  // Convert Nat to Int16
+    } 
+    else 
+    {
+      return null;  // Return null if the value is out of range
     }
   };
 
-  func toPRank(rank : ?PlayerRank) : PRank {
-    switch (rank) {
-      case (?rank) return {name = rank.name; rank = rank.rank; score = rank.score};
+  func toPRank(rank : ?GameData) : PRank
+  {
+    switch (rank) 
+    {
+      case (?rank) return {name = rank.name; isMale = rank.isMale; rank = rank.rank; score = rank.score; playerAddress = rank.playerAddress; rewarded = rank.rewarded; weeklyRank = rank.weeklyRank};
       case (null) return EMPTY_RANK;
     };
-    
   };
 
-  func checkRanks() {
-    if (List.size(players) == 0) {
-      Debug.print("Initializing players");
-      players := fullRanking();
-    };
-
-    if (not initRanks) {
-      Debug.print("Initializing ranking");
-      for(item in List.toIter(players)) {
-        ranking.put(item.rank, item);        
-      };
-      initRanks := true;
-    };
-
+  public shared func ping() : async () {
+  // No-op: used to check canister availability
   };
 
-  public shared func getRanking(before: Nat32, after: Nat32, rank: Int16) : async RankingResult {
-    checkRanks();
-
-    var list = List.nil<PRank>();
-    let value = toNat16(before);
-    let bInt = switch (value) {
-      case (?value) value;
-      case (null) Int16.fromNat16(0);
-    };
-
-    if (rank > 1) {
-      var start = max(1, rank - bInt);
-      while (start < rank) {
-        let pr = toPRank(ranking.get(start));
-        if (pr != EMPTY_RANK) {
-          list := List.append(list, List.push(pr, List.nil<PRank>()));
-        };
-        start := start + 1;
-      };
-    };
-
-    let currentRank = ranking.get(rank);
-    let pr = toPRank(currentRank);
-    if (pr != EMPTY_RANK) {
-      list := List.append(list, List.push(pr, List.nil<PRank>()));
-    };
-
-    var start = rank + 1;
-    let value2 = toNat16(after);
-    let bInt2 = switch (value2) {
-      case (?value2) value2;
-      case (null) Int16.fromNat16(0);
-    };
-    var end = rank + bInt2;
-    while (start <= end) {
-      let pr = toPRank(ranking.get(start));
-      if (pr != EMPTY_RANK) {
-        list := List.append(list, List.push(pr, List.nil<PRank>()));
-      };
-      start := start + 1;
-    };
-
-    let result: RankingResult = {ranking = List.toArray(list)};
-    result
-  };
-  
-  public shared func inc() : async () { 
-    let _ = await set(currentPlayerRank.score + 1);
-  };
-
-  public shared func read() : async Nat32 { currentPlayerRank.score };
-
-  public shared func bump() : async Nat32 {
-    await set(currentPlayerRank.score + 1);
-  };
-
-  func updateRanking(pRank: PlayerRank, value: Nat32) 
-  {
-      // let rank = ranking.get(pRank.rank);
-      // switch (rank) {
-      //   case (?rank) {
-      //     let up = rank.score < pRank.score;
-      //     Debug.print("going up");
-      //     Debug.print(debug_show up);
-      //     Debug.print(debug_show rank.score);
-      //     Debug.print(debug_show pRank.score);
-      //     rank.score := pRank.score;
-      //     if (up) {
-      //       moveUp(rank);
-      //     } else {
-      //       moveDown(rank);
-      //     };
-      //   };
-      //   case (null) ();
-      // };
-    let up = pRank.score < value;
-    Debug.print("going up");
-    Debug.print(debug_show up);
-    Debug.print(debug_show value);
-    Debug.print(debug_show pRank.score);
-    pRank.score := value;
-    if (up) {
-      moveUp(pRank);
-    } else {
-      moveDown(pRank);
-    };
-
-  };
-
-  func moveUp(pRank: PlayerRank) {
-      var rankNumber: Int16 = pRank.rank-1;
-      if (rankNumber > 0) {
-        let upperRank = ranking.get(rankNumber);
-        switch (upperRank) {
-          case (?upperRank)
-            if (upperRank.score < pRank.score) {
-              ranking.delete(pRank.rank);
-              ranking.delete(rankNumber);
-              
-              let tmp = pRank.rank;
-              pRank.rank := upperRank.rank;
-              upperRank.rank := tmp;
-
-              ranking.put(pRank.rank, pRank);
-              ranking.put(upperRank.rank, upperRank);
-
-              moveUp(pRank);
-            };
-          case (null) ();
-        };
-      };
-  };
-
-  func moveDown(pRank: PlayerRank) {
-      var rankNumber: Int16 = pRank.rank+1;
-      let lowerRank = ranking.get(rankNumber);
-      switch (lowerRank) {
-        case (?lowerRank)
-          if (lowerRank.score > pRank.score) {
-            ranking.delete(pRank.rank);
-            ranking.delete(rankNumber);
-            
-            let tmp = pRank.rank;
-            pRank.rank := lowerRank.rank;
-            lowerRank.rank := tmp;
-
-            ranking.put(pRank.rank, pRank);
-            ranking.put(lowerRank.rank, lowerRank);
-
-            moveDown(pRank);
-          };
-        case (null) {
-          // reached bottom
-          // ranking.delete(pRank.rank);
-          // // add to the bottom
-          // pRank.rank := rankNumber;
-          // ranking.put(pRank.rank, pRank);
-        };
-      };
-  };
-
-  public shared func set(value : Nat32) : async Nat32 {
-    let _ = updateRanking(currentPlayerRank, value);
-    currentPlayerRank.score
-  };
-
-  // using direct ref to Type so the client generation code doesn't generate an additional class
-  public shared func getCurrentRanking() : async Types.PRank {
-    if (currentPlayerRank.rank < 1) {
-      if (List.size(players) == 0) {
-        checkRanks();
-      } else {
-        let _ = fullRanking();        
-      };
-    };
-
-    let current = {name = currentPlayerRank.name; rank = currentPlayerRank.rank; score = currentPlayerRank.score;};
-    current
-  };
+  func min(a: Nat, b: Nat) : Nat = if (a < b) a else b;
+  func max(a: Int16, b: Int16) : Int16 = if (a > b) a else b;
 };
-

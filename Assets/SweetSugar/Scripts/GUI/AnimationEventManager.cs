@@ -50,6 +50,7 @@ namespace SweetSugar.Scripts.GUI
         public Sprite backButtonSprite;
         public GameObject profilePopup;
         public GameObject leaderBoard;
+        public GameObject wallet;
 
         void OnEnable()
         {
@@ -69,7 +70,7 @@ namespace SweetSugar.Scripts.GUI
             }
             if (name == "PreFailed")
             {
-//            SoundBase.Instance.PlayOneShot(SoundBase.Instance.gameOver[0]);
+                //            SoundBase.Instance.PlayOneShot(SoundBase.Instance.gameOver[0]);
                 transform.Find("Banner/Buttons/Video").gameObject.SetActive(false);
                 transform.Find("Banner/Buttons/Buy").GetComponent<Button>().interactable = true;
 
@@ -188,7 +189,7 @@ namespace SweetSugar.Scripts.GUI
         {
 
 #if UNITY_ANDROID
-        Application.OpenURL(InitScript.Instance.RateURL);
+            Application.OpenURL(InitScript.Instance.RateURL);
 #elif UNITY_IOS
         Application.OpenURL(InitScript.Instance.RateURLIOS);
 #endif
@@ -288,7 +289,7 @@ namespace SweetSugar.Scripts.GUI
             if (name == "PreFailed" && LevelManager.THIS.gameStatus != GameState.Playing)
             {
                 GetComponent<Animation>()["bannerFailed"].speed = 0;
-                
+
 #if UNITY_ADS || GOOGLE_MOBILE_ADS
 
 			if (AdsManager.THIS.enableUnityAds || AdsManager.THIS.enableGoogleMobileAds) 
@@ -368,7 +369,7 @@ namespace SweetSugar.Scripts.GUI
             }
             if (gameObject.name == "MenuComplete")
             {
-//            LevelManager.THIS.gameStatus = GameState.Map;
+                //            LevelManager.THIS.gameStatus = GameState.Map;
                 PlayerPrefs.SetInt("OpenLevel", LevelManager.THIS.currentLevel + 1);
                 CrosssceneData.openNextLevel = true;
                 LevelManager.THIS.StartCoroutine(OpenMap());
@@ -391,7 +392,7 @@ namespace SweetSugar.Scripts.GUI
             {
                 BackToMap();
             }
-            
+
             else if (gameObject.name == "Settings" && LevelManager.GetGameStatus() == GameState.Map)
             {
                 if (profilePopup != null)
@@ -508,7 +509,7 @@ namespace SweetSugar.Scripts.GUI
             CloseMenu();
 
         }
-        
+
         IEnumerator OpenMap()
         {
             Instantiate(Resources.Load("Loading"), transform.parent);
@@ -543,14 +544,14 @@ namespace SweetSugar.Scripts.GUI
 
         public void BuyFailed(GameObject button)
         {
-//        if (GetComponent<Animation>()["bannerFailed"].speed == 0)
+            //        if (GetComponent<Animation>()["bannerFailed"].speed == 0)
             {
                 if (InitScript.Gems >= LevelManager.THIS.FailedCost)
                 {
                     InitScript.Instance.SpendGems(LevelManager.THIS.FailedCost);
                     button.GetComponent<Button>().interactable = false;
                     GoOnFailed();
-                    GetComponent<Animation>()["bannerFailed"].speed = 1;  
+                    GetComponent<Animation>()["bannerFailed"].speed = 1;
                 }
                 else
                 {
@@ -662,6 +663,15 @@ namespace SweetSugar.Scripts.GUI
                 leaderBoard.SetActive(true);
             }
         }
+        
+        public void OpenWallet()
+        {
+            if (wallet != null)
+            {
+                wallet.SetActive(true);
+            }
+        }
+
 
     }
 }
